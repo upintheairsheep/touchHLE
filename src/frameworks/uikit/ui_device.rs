@@ -56,6 +56,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     ns_string::get_static_str(env, "iPhoneOS")
 }
 
+- (id)name {
+    ns_string::get_static_str(env, "touchHLE")
+}
+
+
+
 - (bool)isMultitaskingSupported {
     false
 }
