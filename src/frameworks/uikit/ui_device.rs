@@ -21,6 +21,8 @@ pub const UIDeviceOrientationLandscapeRight: UIDeviceOrientation = 4;
 pub const UIDeviceOrientationFaceUp: UIDeviceOrientation = 5;
 #[allow(dead_code)]
 pub const UIDeviceOrientationFaceDown: UIDeviceOrientation = 6;
+use crate::ios_battery::{Battery, BatteryState};
+
 
 #[derive(Default)]
 pub struct State {
@@ -69,6 +71,40 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (bool)isMultitaskingSupported {
     false
 }
+
+// Battery properties
+- (float)batteryLevel {
+    if let Some(level) = env.framework_state.uikit.ui_device.battery_level {
+        level
+    } else {
+        1.0
+    }
+}
+
+- (BOOL)isBatteryMonitoringEnabled {
+    env.framework_state.uikit.ui_device.battery_monitoring_enabled
+}
+
+- (UIDeviceBatteryState)batteryState {
+    if let Some(level) = env.framework_state.uikit.ui_device.battery_level {
+        if level == 1.0 {
+            return UIDeviceBatteryStateFull;
+        } else {
+            return UIDeviceBatteryStateCharging;
+        }
+    } else {
+        return UIDeviceBatteryStateUnknown;
+    }
+}
+
+// Battery methods
+- (void)setBatteryMonitoringEnabled:(BOOL)enabled {
+    env.framework_state.uikit.ui_device.battery_monitoring_enabled = enabled;
+    if enabled {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(batteryLevelDidChange:) name:UIDeviceBatteryLevelDidChangeNotification object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(batteryStateDidChange:) name:UIDeviceBatteryStateDidChangeNotification object:nil];
+    } else {
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceBattery
 
 @end
 
