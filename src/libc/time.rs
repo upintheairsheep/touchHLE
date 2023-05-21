@@ -271,10 +271,8 @@ unsafe impl SafeRead for timeval {}
 fn gettimeofday(
     env: &mut Environment,
     timeval_ptr: MutPtr<timeval>,
-    timezone_ptr: MutVoidPtr, // deprecated, always NULL
+    _timezone_ptr: MutVoidPtr, // deprecated, not used
 ) -> i32 {
-    assert!(timezone_ptr.is_null());
-
     if timeval_ptr.is_null() {
         return 0; // success
     }

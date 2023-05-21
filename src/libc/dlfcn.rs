@@ -12,7 +12,11 @@ use crate::Environment;
 fn dlopen(env: &mut Environment, path: ConstPtr<u8>, _mode: i32) -> MutVoidPtr {
     // TODO: dlopen() support for real dynamic libraries, and support for all
     // libraries with host implementations.
-    assert_eq!(env.mem.cstr_at_utf8(path), Ok("/usr/lib/libSystem.B.dylib"));
+    assert!([
+        Ok("/usr/lib/libSystem.B.dylib"),
+        Ok("/System/Library/Frameworks/OpenAL.framework/OpenAL")
+    ]
+    .contains(&env.mem.cstr_at_utf8(path)));
     // For convenience, use the path as the handle.
     // TODO: Find out whether the handle is truly opaque on iPhone OS, and if
     // not, where it points.
@@ -20,10 +24,11 @@ fn dlopen(env: &mut Environment, path: ConstPtr<u8>, _mode: i32) -> MutVoidPtr {
 }
 
 fn dlsym(env: &mut Environment, handle: MutVoidPtr, symbol: ConstPtr<u8>) -> MutVoidPtr {
-    assert_eq!(
-        env.mem.cstr_at_utf8(handle.cast()),
-        Ok("/usr/lib/libSystem.B.dylib")
-    );
+    assert!([
+        Ok("/usr/lib/libSystem.B.dylib"),
+        Ok("/System/Library/Frameworks/OpenAL.framework/OpenAL")
+    ]
+    .contains(&env.mem.cstr_at_utf8(handle.cast())));
     // For some reason, the symbols passed to dlsym() don't have the leading _.
     let symbol = format!("_{}", env.mem.cstr_at_utf8(symbol).unwrap());
     // TODO: error handling. dlsym() should just return NULL in this case, but
@@ -37,10 +42,11 @@ fn dlsym(env: &mut Environment, handle: MutVoidPtr, symbol: ConstPtr<u8>) -> Mut
 }
 
 fn dlclose(env: &mut Environment, handle: MutVoidPtr) -> i32 {
-    assert_eq!(
-        env.mem.cstr_at_utf8(handle.cast()),
-        Ok("/usr/lib/libSystem.B.dylib")
-    );
+    assert!([
+        Ok("/usr/lib/libSystem.B.dylib"),
+        Ok("/System/Library/Frameworks/OpenAL.framework/OpenAL")
+    ]
+    .contains(&env.mem.cstr_at_utf8(handle.cast())));
     0 // success
 }
 

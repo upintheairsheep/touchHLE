@@ -7,6 +7,7 @@
 
 use crate::frameworks::core_graphics::cg_image::{self, CGImageRef, CGImageRelease};
 use crate::frameworks::core_graphics::CGSize;
+use crate::frameworks::foundation::ns_data::to_rust_slice;
 use crate::frameworks::foundation::{ns_string, NSInteger};
 use crate::fs::GuestPath;
 use crate::image::Image;
@@ -41,6 +42,16 @@ pub const CLASSES: ClassExports = objc_classes! {
 + (id)imageWithContentsOfFile:(id)path { // NSString*
     let new: id = msg![env; this alloc];
     let new: id = msg![env; new initWithContentsOfFile:path];
+    autorelease(env, new)
+}
+
++ (id)imageWithData:(id)data { // NSData*
+    let new: id = msg![env; this alloc];
+    let slice = to_rust_slice(env, data);
+    // TODO: refactor common parts
+    let image = Image::from_bytes(&slice).unwrap();
+    let cg_image = cg_image::from_image(env, image);
+    env.objc.borrow_mut::<UIImageHostObject>(new).cg_image = cg_image;
     autorelease(env, new)
 }
 

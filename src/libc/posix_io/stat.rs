@@ -41,7 +41,7 @@ fn fstat(env: &mut Environment, fd: FileDescriptor, buf: MutVoidPtr) -> i32 {
     // TODO: error handling for unknown fd?
     let file = env.libc_state.posix_io.file_for_fd(fd).unwrap();
 
-    log!("Warning: fstat() call, this function is mostly unimplemented");
+    log_dbg!("Warning: fstat() call, this function is mostly unimplemented");
     // FIXME: This implementation is highly incomplete. fstat() returns a huge
     // struct with many kinds of data in it. This code is assuming the caller
     // only wants the file size.
