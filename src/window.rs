@@ -618,6 +618,7 @@ impl Window {
 
     pub fn make_gl_context_current(&mut self, gl_ctx: &GLContext) {
         gl::make_gl_context_current(&self.video_ctx, &self.window, gl_ctx);
+        let _ = self.video_ctx.gl_set_swap_interval(sdl2::video::SwapInterval::VSync).unwrap();
     }
 
     /// Retrieve and reset the flag that indicates if the current OpenGL context

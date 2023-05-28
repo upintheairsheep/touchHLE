@@ -20,7 +20,7 @@ fn sleep(env: &mut Environment, seconds: u32) -> u32 {
     0
 }
 
-fn usleep(env: &mut Environment, useconds: useconds_t) -> i32 {
+pub fn usleep(env: &mut Environment, useconds: useconds_t) -> i32 {
     env.sleep(Duration::from_micros(useconds.into()));
     0 // success
 }

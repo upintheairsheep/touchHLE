@@ -431,6 +431,10 @@ impl Mem {
 
     /// Free an allocation made with one of the `alloc` methods on this type.
     pub fn free(&mut self, ptr: MutVoidPtr) {
+        if ptr.is_null() {
+            log_dbg!("Attempt to free a NULL pointer, ignoring!");
+            return;
+        }
         let size = self.allocator.free(ptr.to_bits());
         self.bytes_at_mut(ptr.cast(), size).fill(0);
         log_dbg!("Freed {:?} ({:#x} bytes)", ptr, size);

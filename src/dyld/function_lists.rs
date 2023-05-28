@@ -10,6 +10,7 @@ use crate::frameworks::{
     audio_toolbox, core_foundation, core_graphics, foundation, openal, opengles, uikit,
 };
 use crate::libc;
+use crate::libc::pthread;
 
 /// All the lists of functions that the linker should search through.
 pub const FUNCTION_LISTS: &[super::FunctionExports] = &[
@@ -21,12 +22,15 @@ pub const FUNCTION_LISTS: &[super::FunctionExports] = &[
     libc::mach_thread_info::FUNCTIONS,
     libc::mach_time::FUNCTIONS,
     libc::math::FUNCTIONS,
+    libc::mmap::FUNCTIONS,
+    libc::network::FUNCTIONS,
     libc::posix_io::FUNCTIONS,
     libc::posix_io::stat::FUNCTIONS,
     libc::pthread::key::FUNCTIONS,
     libc::pthread::mutex::FUNCTIONS,
     libc::pthread::once::FUNCTIONS,
     libc::pthread::thread::FUNCTIONS,
+    pthread::semaphore::FUNCTIONS,
     libc::setjmp::FUNCTIONS,
     libc::stdio::FUNCTIONS,
     libc::stdio::printf::FUNCTIONS,

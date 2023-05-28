@@ -13,7 +13,7 @@ use crate::Environment;
 use std::io::{Seek, SeekFrom};
 
 #[allow(non_camel_case_types)]
-type mode_t = u16;
+pub type mode_t = u16;
 
 fn mkdir(env: &mut Environment, path: ConstPtr<u8>, mode: mode_t) -> i32 {
     // TODO: respect the mode
@@ -57,4 +57,24 @@ fn fstat(env: &mut Environment, fd: FileDescriptor, buf: MutVoidPtr) -> i32 {
     0 // success
 }
 
-pub const FUNCTIONS: FunctionExports = &[export_c_func!(mkdir(_, _)), export_c_func!(fstat(_, _))];
+fn access(env: &mut Environment, path: ConstPtr<u8>, mode: i32) -> i32 {
+    // TODO: can always read?
+    if mode == 4 {
+        // R_OK
+        return 0;
+    }
+    assert_eq!(mode, 0); // F_OK
+    let binding = env.mem.cstr_at_utf8(path).unwrap();
+    let guest_path = GuestPath::new(&binding);
+    if env.fs.exists(guest_path) {
+        0
+    } else {
+        -1
+    }
+}
+
+pub const FUNCTIONS: FunctionExports = &[
+    export_c_func!(mkdir(_, _)),
+    export_c_func!(fstat(_, _)),
+    export_c_func!(access(_, _)),
+];

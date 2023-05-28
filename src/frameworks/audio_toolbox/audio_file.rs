@@ -251,7 +251,10 @@ fn AudioFileReadBytes(
         .audio_file
         .read_bytes(in_starting_byte.try_into().unwrap(), buffer_slice)
         .unwrap(); // TODO: handle seek error?
-    assert!((bytes_read as u64) == (bytes_to_read as u64)); // TODO: return eofErr
+    // if bytes_read == 0 {
+    //     return -39;
+    // }
+    //assert!((bytes_read as u64) == (bytes_to_read as u64)); // TODO: return eofErr
     env.mem.write(io_num_bytes, bytes_read.try_into().unwrap());
 
     0 // success

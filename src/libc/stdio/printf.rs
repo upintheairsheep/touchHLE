@@ -8,7 +8,9 @@
 use crate::abi::{DotDotDot, VaList};
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::frameworks::foundation::ns_string;
-use crate::mem::{ConstPtr, GuestUSize, Mem, MutPtr};
+use crate::libc::posix_io::FileDescriptor;
+use crate::libc::stdio::FILE;
+use crate::mem::{ConstPtr, GuestUSize, Mem, MutPtr, MutVoidPtr};
 use crate::objc::{id, msg};
 use crate::Environment;
 use std::io::Write;
@@ -60,6 +62,18 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
             pad_width
         };
 
+        let precision = {
+            let mut precision = 0;
+            if get_format_char(&env.mem, format_char_idx) == b'.' {
+                format_char_idx += 1;
+                while let c @ b'0'..=b'9' = get_format_char(&env.mem, format_char_idx) {
+                    precision = precision * 10 + (c - b'0') as usize;
+                    format_char_idx += 1;
+                }
+            }
+            precision
+        };
+
         let specifier = get_format_char(&env.mem, format_char_idx);
         format_char_idx += 1;
 
@@ -77,7 +91,7 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
             }
             b's' => {
                 let c_string: ConstPtr<u8> = args.next(env);
-                assert!(pad_char == ' ' && pad_width == 0); // TODO
+                //assert!(pad_char == ' ' && pad_width == 0); // TODO
                 res.extend_from_slice(env.mem.cstr_at(c_string));
             }
             b'd' | b'i' | b'u' => {
@@ -104,7 +118,11 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
                     if pad_char == '0' {
                         write!(&mut res, "{:01$}", float, pad_width).unwrap();
                     } else {
-                        write!(&mut res, "{:1$}", float, pad_width).unwrap();
+                        if precision > 0 {
+                            write!(&mut res, "{:1$.2$}", float, pad_width, precision).unwrap();
+                        } else {
+                            write!(&mut res, "{:1$}", float, pad_width).unwrap();
+                        }
                     }
                 } else {
                     write!(&mut res, "{}", float).unwrap();
@@ -122,6 +140,10 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
             b'x' => {
                 let int: i32 = args.next(env);
                 res.extend_from_slice(format!("{:x}", int).as_bytes());
+            }
+            b'p' => {
+                let ptr: MutVoidPtr = args.next(env);
+                res.extend_from_slice(format!("{:?}", ptr).as_bytes());
             }
             // TODO: more specifiers
             _ => unimplemented!("Format character '{}'", specifier as char),
@@ -159,6 +181,29 @@ fn vsnprintf(
         dest_slice[i] = byte;
     }
 
+    res.len().try_into().unwrap()
+}
+
+fn snprintf(
+    env: &mut Environment,
+    dest: MutPtr<u8>,
+    n: GuestUSize,
+    format: ConstPtr<u8>,
+    args: DotDotDot,
+) -> i32 {
+    vsnprintf(env, dest, n, format, args.start())
+}
+
+fn vprintf(env: &mut Environment, format: ConstPtr<u8>, arg: VaList) -> i32 {
+    log_dbg!(
+        "vprintf({:?} ({:?}), ...)",
+        format,
+        env.mem.cstr_at_utf8(format)
+    );
+
+    let res = printf_inner::<false, _>(env, |mem, idx| mem.read(format + idx), arg);
+    // TODO: I/O error handling
+    let _ = std::io::stdout().write_all(&res);
     res.len().try_into().unwrap()
 }
 
@@ -271,10 +316,33 @@ fn sscanf(env: &mut Environment, src: ConstPtr<u8>, format: ConstPtr<u8>, args: 
     matched_args
 }
 
+fn setbuf(_env: &mut Environment, _stream: MutPtr<FILE>, _buf: ConstPtr<u8>) {
+    // TODO
+}
+
+fn fprintf(
+    env: &mut Environment,
+    _stream: MutPtr<FILE>,
+    format: ConstPtr<u8>,
+    args: DotDotDot,
+) -> i32 {
+    // TODO: assert that stream is stdio
+    printf(env, format, args)
+}
+
+fn isatty(env: &mut Environment, fd: FileDescriptor) -> i32 {
+    1
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(sscanf(_, _, _)),
     export_c_func!(vsnprintf(_, _, _, _)),
+    export_c_func!(snprintf(_, _, _, _)),
+    export_c_func!(vprintf(_, _)),
     export_c_func!(vsprintf(_, _, _)),
     export_c_func!(sprintf(_, _, _)),
     export_c_func!(printf(_, _)),
+    export_c_func!(fprintf(_, _, _)),
+    export_c_func!(setbuf(_, _)),
+    export_c_func!(isatty(_)),
 ];

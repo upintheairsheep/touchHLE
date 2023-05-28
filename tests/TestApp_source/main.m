@@ -9,10 +9,13 @@ This code supposed to be compiled with iPhone SDK and Xcode 3.1 Developer Tools
 for Mac OS X v10.5
 */
 #include <errno.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int int_compar(const void *a, const void *b) { return *(int *)a - *(int *)b; }
 
@@ -84,6 +87,42 @@ int test_realloc() {
   return res == 0 ? 0 : -1;
 }
 
+sem_t *semaphore;
+int shared_int = 0;
+
+void sem_thread_func() {
+  while (1) {
+    if (sem_trywait(semaphore) == -1) {
+      return;
+    }
+    shared_int = -1;
+    sem_post(semaphore);
+    usleep(100);
+  }
+}
+
+int test_sem() {
+  semaphore = sem_open("sem_test", O_CREAT | O_EXCL, 0644, 1);
+  if (semaphore == SEM_FAILED) {
+    printf("Error opening semaphore\n");
+    return -1;
+  }
+
+  pthread_t *my_thread = (pthread_t *)malloc(sizeof(pthread_t));
+  pthread_create(my_thread, NULL, (void *)sem_thread_func, NULL);
+  usleep(200);
+
+  sem_wait(semaphore);
+
+  shared_int = 1;
+  usleep(200);
+
+  sem_unlink("sem_test");
+  sem_close(semaphore);
+
+  return shared_int == 1 ? 0 : -1;
+}
+
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
 struct {
@@ -91,7 +130,7 @@ struct {
   const char *name;
 } test_func_array[] = {
     FUNC_DEF(test_qsort), FUNC_DEF(test_vsnprintf), FUNC_DEF(test_sscanf),
-    FUNC_DEF(test_errno), FUNC_DEF(test_realloc),
+    FUNC_DEF(test_errno), FUNC_DEF(test_realloc),   FUNC_DEF(test_sem),
 };
 
 int main(int argc, char *argv[]) {

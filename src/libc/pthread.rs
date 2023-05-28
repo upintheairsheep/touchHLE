@@ -30,6 +30,7 @@ macro_rules! check_magic {
 
 pub mod key;
 pub mod mutex;
+pub mod semaphore;
 pub mod once;
 pub mod thread;
 
@@ -37,5 +38,6 @@ pub mod thread;
 pub struct State {
     key: key::State,
     mutex: mutex::State,
+    pub semaphore: semaphore::State,
     thread: thread::State,
 }
