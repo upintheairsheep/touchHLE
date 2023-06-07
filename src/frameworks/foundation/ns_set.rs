@@ -138,10 +138,6 @@ pub const CLASSES: ClassExports = objc_classes! {
     }
 }
 
-- (NSUInteger)count {
-    env.objc.borrow::<SetHostObject>(this).dict.count
-}
-
 @end
 
 };
