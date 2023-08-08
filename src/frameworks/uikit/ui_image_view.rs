@@ -27,10 +27,6 @@ pub const CLASSES: ClassExports = objc_classes! {
     msg![env; this initWithFrame:frame]
 }
 
-- (())setImage:(id)_image { // UIImage*
-    // TODO: implement
-}
-
 @end
 
 };

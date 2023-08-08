@@ -8,7 +8,6 @@
 use super::cg_color_space::{kCGColorSpaceGenericRGB, CGColorSpaceCreateWithName, CGColorSpaceRef};
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::frameworks::core_foundation::{CFRelease, CFRetain, CFTypeRef};
-use crate::frameworks::core_graphics::cg_data_provider::CGDataProviderRef;
 use crate::frameworks::foundation::ns_string;
 use crate::image::Image;
 use crate::mem::GuestUSize;
@@ -121,11 +120,6 @@ fn CGImageGetHeight(env: &mut Environment, image: CGImageRef) -> GuestUSize {
     height
 }
 
-fn CGImageGetDataProvider(_env: &mut Environment, image: CGImageRef) -> CGDataProviderRef {
-    // TODO: implement proper provider?
-    image
-}
-
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(CGImageRelease(_)),
     export_c_func!(CGImageRetain(_)),
@@ -133,5 +127,4 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(CGImageGetColorSpace(_)),
     export_c_func!(CGImageGetWidth(_)),
     export_c_func!(CGImageGetHeight(_)),
-    export_c_func!(CGImageGetDataProvider(_)),
 ];

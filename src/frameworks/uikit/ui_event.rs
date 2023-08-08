@@ -49,11 +49,6 @@ pub const CLASSES: ClassExports = objc_classes! {
     touches
 }
 
-- (id)allTouches {
-    let &UIEventHostObject { touches, .. } = env.objc.borrow(this);
-    touches
-}
-
 // TODO: more accessors
 
 @end

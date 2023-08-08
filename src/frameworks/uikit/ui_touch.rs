@@ -7,7 +7,6 @@
 
 use super::ui_event;
 use super::ui_view::UIViewHostObject;
-use crate::abi::GuestRet;
 use crate::frameworks::core_graphics::{CGFloat, CGPoint};
 use crate::frameworks::foundation::{NSTimeInterval, NSUInteger};
 use crate::objc::{
@@ -16,29 +15,6 @@ use crate::objc::{
 };
 use crate::window::Event;
 use crate::Environment;
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[repr(i32)] // this should be an NSInteger!
-pub enum UITouchPhase {
-    UITouchPhaseBegan = 0,
-    UITouchPhaseMoved = 1,
-    UITouchPhaseEnded = 3,
-}
-
-impl GuestRet for UITouchPhase {
-    fn from_regs(regs: &[u32]) -> Self {
-        // TODO: how to simplify?
-        match regs[0] {
-            0 => UITouchPhase::UITouchPhaseBegan,
-            1 => UITouchPhase::UITouchPhaseMoved,
-            3 => UITouchPhase::UITouchPhaseEnded,
-            _ => panic!(),
-        }
-    }
-    fn to_regs(self, regs: &mut [u32]) {
-        regs[0] = self as u32;
-    }
-}
 
 #[derive(Default)]
 pub struct State {
@@ -53,7 +29,6 @@ struct UITouchHostObject {
     /// Relative to screen
     previous_location: CGPoint,
     timestamp: NSTimeInterval,
-    phase: UITouchPhase,
 }
 impl HostObject for UITouchHostObject {}
 
@@ -69,7 +44,6 @@ pub const CLASSES: ClassExports = objc_classes! {
         location: CGPoint { x: 0.0, y: 0.0 },
         previous_location: CGPoint { x: 0.0, y: 0.0 },
         timestamp: 0.0,
-        phase: UITouchPhase::UITouchPhaseBegan,
     });
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
@@ -111,10 +85,6 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (NSUInteger)tapCount {
     1 // TODO: support double-taps etc
-}
-
-- (UITouchPhase)phase {
-    env.objc.borrow::<UITouchHostObject>(this).phase
 }
 
 @end
@@ -207,7 +177,6 @@ pub fn handle_event(env: &mut Environment, event: Event) {
                 location,
                 previous_location: location,
                 timestamp,
-                phase: UITouchPhase::UITouchPhaseBegan,
             };
             autorelease(env, new_touch);
 
@@ -248,7 +217,6 @@ pub fn handle_event(env: &mut Environment, event: Event) {
             host_object.previous_location = host_object.location;
             host_object.location = location;
             host_object.timestamp = timestamp;
-            host_object.phase = UITouchPhase::UITouchPhaseMoved;
 
             let pool: id = msg_class![env; NSAutoreleasePool new];
 
@@ -286,7 +254,6 @@ pub fn handle_event(env: &mut Environment, event: Event) {
             host_object.previous_location = host_object.location;
             host_object.location = location;
             host_object.timestamp = timestamp;
-            host_object.phase = UITouchPhase::UITouchPhaseEnded;
 
             let pool: id = msg_class![env; NSAutoreleasePool new];
 

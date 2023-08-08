@@ -108,7 +108,6 @@ extern "C" {
     pub fn alDistanceModel(value: ALenum);
 
     pub fn alListenerf(param: ALenum, value: ALfloat);
-    pub fn alListenerfv(param: ALenum, values: *const ALfloat);
     pub fn alListener3f(param: ALenum, value1: ALfloat, value2: ALfloat, value3: ALfloat);
 
     pub fn alGenSources(n: ALsizei, sources: *mut ALuint);
@@ -116,7 +115,6 @@ extern "C" {
 
     pub fn alSourcef(source: ALuint, param: ALenum, value: ALfloat);
     pub fn alSourcei(source: ALuint, param: ALenum, value: ALint);
-    pub fn alSourcefv(source: ALuint, param: ALenum, values: *const ALfloat);
     pub fn alGetSourcef(source: ALuint, param: ALenum, value: *mut ALfloat);
     pub fn alGetSourcei(source: ALuint, param: ALenum, value: *mut ALint);
 
@@ -137,7 +135,4 @@ extern "C" {
         size: ALsizei,
         samplerate: ALsizei,
     );
-
-    pub fn alDopplerFactor(dopplerFactor: ALfloat);
-    pub fn alDopplerVelocity(dopplerVelocity: ALfloat);
 }

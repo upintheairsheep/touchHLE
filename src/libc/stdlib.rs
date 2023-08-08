@@ -32,14 +32,6 @@ fn calloc(env: &mut Environment, count: GuestUSize, size: GuestUSize) -> MutVoid
     env.mem.alloc(total)
 }
 
-fn realloc(env: &mut Environment, ptr: MutVoidPtr, size: GuestUSize) -> MutVoidPtr {
-    assert_ne!(size, 0);
-    if ptr.is_null() {
-        return malloc(env, size);
-    }
-    env.mem.realloc(ptr, size)
-}
-
 fn free(env: &mut Environment, ptr: MutVoidPtr) {
     env.mem.free(ptr);
 }
@@ -236,7 +228,6 @@ fn bsearch(
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(malloc(_)),
     export_c_func!(calloc(_, _)),
-    export_c_func!(realloc(_, _)),
     export_c_func!(free(_)),
     export_c_func!(atexit(_)),
     export_c_func!(atoi(_)),

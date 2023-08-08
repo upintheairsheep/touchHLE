@@ -39,5 +39,4 @@ pub struct State {
     stdlib: stdlib::State,
     string: string::State,
     time: time::State,
-    errno: errno::State,
 }
