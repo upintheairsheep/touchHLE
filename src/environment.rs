@@ -14,9 +14,6 @@ use crate::{
 };
 use std::net::TcpListener;
 use std::time::{Duration, Instant};
-use sdl2::libc::sem_t;
-use crate::libc::pthread::semaphore::SemaphoreHostObject;
-use crate::mem::MutPtr;
 
 /// Index into the [Vec] of threads. Thread 0 is always the main thread.
 pub type ThreadID = usize;
@@ -26,7 +23,7 @@ pub struct Thread {
     /// Once a thread finishes, this is set to false.
     pub active: bool,
     /// If this is not [None], the thread is sleeping until the specified time.
-    pub sleeping_until: Option<Instant>,
+    sleeping_until: Option<Instant>,
     /// Set to [true] when a thread is running its startup routine (i.e. the
     /// function pointer passed to `pthread_create`). When it returns to the
     /// host, it should become inactive.
@@ -363,8 +360,9 @@ impl Environment {
         new_thread_id
     }
 
-    /// Put the current thread to sleep for some duration, running other threads
-    /// in the meantime as appropriate.
+    /// Put the current thread to sleep for some duration.
+    /// Note that this only take effect once returning to [Self::run] or
+    /// [Self::run_call], so do this just before a host function returns.
     pub fn sleep(&mut self, duration: Duration) {
         assert!(self.threads[self.current_thread].sleeping_until.is_none());
 
@@ -375,52 +373,6 @@ impl Environment {
         );
         let until = Instant::now().checked_add(duration).unwrap();
         self.threads[self.current_thread].sleeping_until = Some(until);
-
-        let old_pc = self.cpu.pc_with_thumb_bit();
-        self.cpu.branch(self.dyld.return_to_host_routine());
-        // Since the current thread is asleep, this will only run other threads
-        // until it wakes up, at which point it signals return-to-host and
-        // control is returned to this function.
-        self.run_call();
-        self.cpu.branch(old_pc);
-    }
-
-    pub fn sleep_sem(&mut self, sem: MutPtr<sem_t>, wait_on_lock: bool) -> bool {
-        let host_sem: &mut _ = self.libc_state.pthread.semaphore.semaphores.get_mut(&sem).unwrap();
-
-        host_sem.value -= 1;
-        log_dbg!("Sleep: Sem {:?} is now {}", sem, host_sem.value);
-
-        if !wait_on_lock {
-            return host_sem.value >= 0;
-        }
-
-        if host_sem.value < 0 {
-            assert!(self.threads[self.current_thread].sleeping_until.is_none());
-
-            host_sem.waiting.insert(self.current_thread);
-            self.sleep(Duration::from_secs(60 * 60 * 24)); // 1 day
-        }
-
-        true
-    }
-
-    pub fn unsleep_sem(&mut self, sem: MutPtr<sem_t>) {
-        let host_sem: &mut _ = self.libc_state.pthread.semaphore.semaphores.get_mut(&sem).unwrap();
-
-        // TODO: ensure that this is an atomic operation?
-        host_sem.value += 1;
-        log_dbg!("Unsleep: Sem {:?} is now {}", sem, host_sem.value);
-
-        if host_sem.value > 0 {
-            let mut set = &host_sem.waiting;
-            for thread_id in set {
-                let thread = &mut self.threads[*thread_id];
-                assert!(thread.sleeping_until.is_some());
-                thread.sleeping_until = None;
-            }
-            host_sem.waiting.clear();
-        }
     }
 
     /// Run the emulator. This is the main loop and won't return until app exit.
@@ -538,9 +490,6 @@ impl Environment {
                         log_dbg!("Freeing thread {} stack {:?}", self.current_thread, stack);
                         self.mem.free(stack);
                         return ThreadNextAction::Yield;
-                    } else if !root && self.current_thread != initial_thread {
-                        self.cpu.regs_mut()[cpu::Cpu::PC] = svc_pc;
-                        return ThreadNextAction::Yield;
                     } else {
                         panic!("Unexpected return-to-host!");
                     }
@@ -554,7 +503,13 @@ impl Environment {
                     self.threads[self.current_thread].in_host_function = true;
                     f.call_from_guest(self);
                     self.threads[self.current_thread].in_host_function = was_in_host_function;
-                    ThreadNextAction::Continue
+                    // Host function might have put the thread to sleep.
+                    if self.threads[self.current_thread].sleeping_until.is_some() {
+                        log_dbg!("Yielding: thread {} is asleep.", self.current_thread);
+                        ThreadNextAction::Yield
+                    } else {
+                        ThreadNextAction::Continue
+                    }
                 } else {
                     self.cpu.regs_mut()[cpu::Cpu::PC] = svc_pc;
                     ThreadNextAction::Continue
@@ -576,14 +531,7 @@ impl Environment {
             // 100,000 ticks is an arbitrary number.
             self.window.poll_for_events(&self.options);
 
-            let mut ticks = if self.threads[self.current_thread].sleeping_until.is_some() {
-                // The current thread might be asleep, in which case we want to
-                // immediately switch to another thread. This only happens when
-                // called from Self::sleep().
-                0
-            } else {
-                100_000
-            };
+            let mut ticks = 100_000;
             let mut step_and_debug = false;
             while ticks > 0 {
                 let state = self.cpu.run_or_step(
