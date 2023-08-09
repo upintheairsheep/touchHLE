@@ -14,6 +14,8 @@
 //! Relevant Apple documentation:
 //! * [Memory Usage Performance Guidelines](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/ManagingMemory/ManagingMemory.html)
 
+use crate::mem::allocator::Allocator;
+
 mod allocator;
 
 /// Equivalent of `usize` for guest memory.
@@ -424,14 +426,24 @@ impl Mem {
 
     pub fn realloc(&mut self, old_ptr: MutVoidPtr, size: GuestUSize) -> MutVoidPtr {
         // TODO: for a moment we always assume that we do not have enough size to realloc inplace
-        let old_size = self.allocator.find_allocated_size(old_ptr.to_bits());
+        let old_chunk = self.allocator.find_allocated_chunk(old_ptr.to_bits());
+        let old_size = old_chunk.size();
         if old_size == size {
             return old_ptr;
         }
         assert!(size > old_size);
+
+        let aligned_size = Allocator::align_size(size);
+        let (combined_chunk, grown) = self.allocator.try_combine_with_neighbour(old_chunk, false);
+        log_dbg!("Grown {:?}, combined size {:#x}", grown, combined_chunk.size());
+        if grown && aligned_size <= combined_chunk.size() {
+            return Ptr::from_bits(self.allocator.split_chunk(aligned_size, combined_chunk));
+        }
+
         let new_ptr = self.alloc(size);
         self.memmove(new_ptr, old_ptr.cast_const(), old_size);
         self.free(old_ptr);
+        log_dbg!("Re-Allocated {:?} to {:?} ({:#x} old bytes, {:#x} new bytes)", old_ptr, new_ptr, old_size, size);
         new_ptr
     }
 
