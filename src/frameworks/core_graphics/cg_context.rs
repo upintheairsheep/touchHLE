@@ -92,7 +92,7 @@ fn CGContextTranslateCTM(env: &mut Environment, context: CGContextRef, tx: CGFlo
 }
 
 fn CGContextScaleCTM(env: &mut Environment, context: CGContextRef, sx: CGFloat, sy: CGFloat) {
-
+    log!("CGContextScaleCTM sx {} sy {}", sx, sy);
 }
 
 fn CGContextDrawImage(

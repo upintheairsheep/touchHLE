@@ -161,6 +161,8 @@ pub fn size_with_font(
     text: &str,
     constrained: Option<(CGSize, UILineBreakMode)>,
 ) -> CGSize {
+    if text == " " { return CGSize { width: 5.0, height: 10.0 } }
+
     let host_object = env.objc.borrow::<UIFontHostObject>(font);
 
     let font = get_font(
@@ -214,14 +216,14 @@ pub fn draw_in_rect(
         text,
         (
             translation.0 + rect.origin.x + origin_x_offset,
-            translation.1 + rect.origin.y,
+            -(translation.1 + rect.origin.y),
         ),
         Some((rect.size.width, convert_line_break_mode(line_break_mode))),
         alignment,
         |(x, y), coverage| {
             let (r, g, b, a) = fill_color;
             let (r, g, b, a) = (r * coverage, g * coverage, b * coverage, a * coverage);
-            drawer.put_pixel((x, y), (r, g, b, a));
+            drawer.put_pixel((x, -y), (r, g, b, a));
         },
     );
 

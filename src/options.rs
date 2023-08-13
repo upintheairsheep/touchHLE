@@ -44,7 +44,7 @@ impl Default for Options {
     fn default() -> Self {
         Options {
             fullscreen: false,
-            initial_orientation: DeviceOrientation::Portrait,
+            initial_orientation: DeviceOrientation::LandscapeLeft,
             scale_hack: NonZeroU32::new(1).unwrap(),
             deadzone: 0.1,
             x_tilt_range: 60.0,

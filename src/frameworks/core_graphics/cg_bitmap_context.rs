@@ -81,13 +81,13 @@ fn components_for_rgb(bitmap_info: CGBitmapInfo) -> Result<GuestUSize, ()> {
         return Err(()); // TODO: handle other cases (float)
     }
     match alpha_info & kCGBitmapAlphaInfoMask {
-        kCGImageAlphaNone => Ok(3), // RGB
+        kCGImageAlphaNone => Ok(1), // RGB
         kCGImageAlphaPremultipliedLast
         | kCGImageAlphaPremultipliedFirst
         | kCGImageAlphaLast
         | kCGImageAlphaFirst
         | kCGImageAlphaNoneSkipLast
-        | kCGImageAlphaNoneSkipFirst => Ok(4), // RGBA/ARGB/RGBX/XRGB
+        | kCGImageAlphaNoneSkipFirst => Ok(2), // RGBA/ARGB/RGBX/XRGB
         kCGImageAlphaOnly => Ok(1), // A
         _ => Err(()),               // unknown values
     }
@@ -151,32 +151,32 @@ fn get_pixel(
     let pixel = match data.alpha_info {
         kCGImageAlphaNone => (
             pixels[first_component_idx] as f32 / 255.0,
-            pixels[first_component_idx + 1] as f32 / 255.0,
-            pixels[first_component_idx + 2] as f32 / 255.0,
+            pixels[first_component_idx] as f32 / 255.0,
+            pixels[first_component_idx] as f32 / 255.0,
             1.0,
         ),
         kCGImageAlphaPremultipliedLast | kCGImageAlphaLast => (
             pixels[first_component_idx] as f32 / 255.0,
+            pixels[first_component_idx] as f32 / 255.0,
+            pixels[first_component_idx] as f32 / 255.0,
             pixels[first_component_idx + 1] as f32 / 255.0,
-            pixels[first_component_idx + 2] as f32 / 255.0,
-            pixels[first_component_idx + 3] as f32 / 255.0,
         ),
         kCGImageAlphaPremultipliedFirst | kCGImageAlphaFirst => (
             pixels[first_component_idx + 1] as f32 / 255.0,
-            pixels[first_component_idx + 2] as f32 / 255.0,
-            pixels[first_component_idx + 3] as f32 / 255.0,
+            pixels[first_component_idx + 1] as f32 / 255.0,
+            pixels[first_component_idx + 1] as f32 / 255.0,
             pixels[first_component_idx] as f32 / 255.0,
         ),
         kCGImageAlphaNoneSkipLast => (
             pixels[first_component_idx] as f32 / 255.0,
-            pixels[first_component_idx + 1] as f32 / 255.0,
-            pixels[first_component_idx + 2] as f32 / 255.0,
+            pixels[first_component_idx] as f32 / 255.0,
+            pixels[first_component_idx] as f32 / 255.0,
             1.0,
         ),
         kCGImageAlphaNoneSkipFirst => (
             pixels[first_component_idx + 1] as f32 / 255.0,
-            pixels[first_component_idx + 2] as f32 / 255.0,
-            pixels[first_component_idx + 3] as f32 / 255.0,
+            pixels[first_component_idx + 1] as f32 / 255.0,
+            pixels[first_component_idx + 1] as f32 / 255.0,
             1.0,
         ),
         kCGImageAlphaOnly => (
@@ -236,32 +236,32 @@ fn put_pixel(
     match data.alpha_info {
         kCGImageAlphaNone => {
             pixels[first_component_idx] = (r * 255.0) as u8;
-            pixels[first_component_idx + 1] = (g * 255.0) as u8;
-            pixels[first_component_idx + 2] = (b * 255.0) as u8;
+            pixels[first_component_idx] = (g * 255.0) as u8;
+            pixels[first_component_idx] = (b * 255.0) as u8;
         }
         kCGImageAlphaPremultipliedLast | kCGImageAlphaLast => {
             pixels[first_component_idx] = (r * 255.0) as u8;
-            pixels[first_component_idx + 1] = (g * 255.0) as u8;
-            pixels[first_component_idx + 2] = (b * 255.0) as u8;
-            pixels[first_component_idx + 3] = (a * 255.0) as u8;
+            pixels[first_component_idx] = (g * 255.0) as u8;
+            pixels[first_component_idx] = (b * 255.0) as u8;
+            pixels[first_component_idx + 1] = (a * 255.0) as u8;
         }
         kCGImageAlphaPremultipliedFirst | kCGImageAlphaFirst => {
             pixels[first_component_idx] = (a * 255.0) as u8;
             pixels[first_component_idx + 1] = (r * 255.0) as u8;
-            pixels[first_component_idx + 2] = (g * 255.0) as u8;
-            pixels[first_component_idx + 3] = (b * 255.0) as u8;
+            pixels[first_component_idx + 1] = (g * 255.0) as u8;
+            pixels[first_component_idx + 1] = (b * 255.0) as u8;
         }
         kCGImageAlphaNoneSkipLast => {
             pixels[first_component_idx] = (r * 255.0) as u8;
-            pixels[first_component_idx + 1] = (g * 255.0) as u8;
-            pixels[first_component_idx + 2] = (b * 255.0) as u8;
+            pixels[first_component_idx] = (g * 255.0) as u8;
+            pixels[first_component_idx] = (b * 255.0) as u8;
             // alpha component skipped
         }
         kCGImageAlphaNoneSkipFirst => {
             // alpha component skipped
             pixels[first_component_idx + 1] = (r * 255.0) as u8;
-            pixels[first_component_idx + 2] = (g * 255.0) as u8;
-            pixels[first_component_idx + 3] = (b * 255.0) as u8;
+            pixels[first_component_idx + 1] = (g * 255.0) as u8;
+            pixels[first_component_idx + 1] = (b * 255.0) as u8;
         }
         kCGImageAlphaOnly => {
             pixels[first_component_idx] = (a * 255.0) as u8;
