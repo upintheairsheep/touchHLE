@@ -57,7 +57,7 @@ There's a few ways you can run an app in touchHLE.
 
 ## Installation via WinGet
 
-On Windows, 
+On Windows, an easier method of installation can be done via WinGet. 
 
 ## Special Android notes
 
