@@ -59,8 +59,6 @@ There's a few ways you can run an app in touchHLE.
 
 To simplify the installation and management process on Windows, you can use `winget` to install touchHLE. Run `winget install touchHLE` in the command line to install touchHLE on Windows and `winget upgrade touchHLE` in the command line to update touchHLE to the latest version. To uninstall touchHLE, run `winget uninstall touchHLE --preserve` to keep settings and app data, and `winget uninstall touchHLE` to uninstall touchHLE while also permanently deleting app data and settings. Please note the process of updating and uninstalling touchHLE via `winget` only apply to when touchHLE is installed via `winget`, and that `winget` is not availble on certain older versions of Windows 10 and below. To create a shortcut to access the touchHLE directory, run `powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%userprofile%\Documents\touchHLE.lnk');$s.TargetPath='%userprofile%\AppData\Local\Microsoft\WinGet\Packages\hikari-no-yume.touchHLE';$s.Save()"` in the command line. When touchHLE is installed via `winget`, `touchHLE` will be added as a new command, and can be used in any folder. `.\touchHLE.exe` will not work, use `touchHLE` instead when installed via `winget`.
 
-
-
 ## Special Android notes
 
 Windows, Mac and Linux users can skip this section.
@@ -104,7 +102,7 @@ If you're a Windows user and unfamiliar with the command line, these instruction
 
 ## Other stuff
 
-Currently language detection doesn't work on Windows. To change the language preference reported to the app, you can type `SET LANG=` followed by an ISO 639-1 language code, then press Enter, before running the app in the command line. Some common language codes are: `en` (English), `de` (Deutsch), `es` (español), `fr` (français), `it` (italiano) and `ja` (日本語). Bear in mind that it's the app itself that determines which languages are supported, not the emulator.
+Currently language detection doesn't work on Windows. To change the language preference reported to the app, you can type `SET LANG=` followed by an [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), then press Enter, before running the app in the command line. Some common language codes are: `en` (English), `de` (Deutsch), `es` (español), `fr` (français), `it` (italiano) and `ja` (日本語). Bear in mind that it's the app itself that determines which languages are supported, not the emulator.
 
 Any data saved by the app (e.g. **saved games**) are stored in the `touchHLE_sandbox` folder.
 
