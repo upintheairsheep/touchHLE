@@ -57,7 +57,7 @@ There's a few ways you can run an app in touchHLE.
 
 ## Installation via WinGet
 
-To simplify the installation process on Windows, you can use Winget to install touchHLE. Run `winget install touchHLE` in the command line to install touchHLE on Windows and `winget upgrade touchHLE` in the command line to update touchHLE. To uninstall touchHLE, 
+To simplify the installation and management process on Windows, you can use Winget to install touchHLE.  Run `winget install touchHLE` in the command line to install touchHLE on Windows and `winget upgrade touchHLE` in the command line to update touchHLE. To uninstall touchHLE, run `winget uninstall touchHLE --preserve` to keep settings and app data, and `winget uninstall touchHLE` to uninstall touchHLE while also permanently deleting app data and settings. Please note the process of updating and uninstalling touchHLE via winget only apply to when touchHLE is installed via winget.
 
 ## Special Android notes
 
