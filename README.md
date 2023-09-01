@@ -55,6 +55,10 @@ You'll then need an app that you can run (check [the list of supported apps](APP
 
 There's a few ways you can run an app in touchHLE.
 
+## Installation via WinGet
+
+On Windows, 
+
 ## Special Android notes
 
 Windows, Mac and Linux users can skip this section.
