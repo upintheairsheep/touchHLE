@@ -208,6 +208,13 @@ impl Environment {
             mem::Mem::new()
         };
 
+        let is_spore = bundle.bundle_identifier().starts_with("com.ea.spore");
+        // We always reset this flag depending on which game is launched.
+        mem.zero_memory_on_free = !is_spore;
+        if is_spore {
+            log!("Applying game-specific hack for Spore Origins: zeroing memory on alloc instead of free.");
+        }
+
         let executable = mach_o::MachO::load_from_file(bundle.executable_path(), &fs, &mut mem)
             .map_err(|e| format!("Could not load executable: {}", e))?;
 
