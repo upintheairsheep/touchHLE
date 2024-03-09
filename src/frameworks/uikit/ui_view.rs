@@ -47,6 +47,7 @@ pub(super) struct UIViewHostObject {
     superview: id,
     /// The view controller that controls this view. This is a weak reference
     view_controller: id,
+    tag: NSInteger,
     clears_context_before_drawing: bool,
     user_interaction_enabled: bool,
     multiple_touch_enabled: bool,
@@ -61,6 +62,7 @@ impl Default for UIViewHostObject {
             subviews: Vec::new(),
             superview: nil,
             view_controller: nil,
+            tag: 0,
             clears_context_before_drawing: true,
             user_interaction_enabled: true,
             multiple_touch_enabled: false,
@@ -156,18 +158,22 @@ pub const CLASSES: ClassExports = objc_classes! {
     let key_ns_string = get_static_str(env, "UIBackgroundColor");
     let bg_color: id = msg![env; coder decodeObjectForKey:key_ns_string];
 
+    let key_ns_string = get_static_str(env, "UITag");
+    let tag: NSInteger = msg![env; coder decodeIntegerForKey:key_ns_string];
+
     let key_ns_string = get_static_str(env, "UISubviews");
     let subviews: id = msg![env; coder decodeObjectForKey:key_ns_string];
     let subview_count: NSUInteger = msg![env; subviews count];
 
     log_dbg!(
-        "[(UIView*){:?} initWithCoder:{:?}] => bounds {}, center {}, hidden {}, bg color {:?}, opaque {}, {} subviews",
+        "[(UIView*){:?} initWithCoder:{:?}] => bounds {}, center {}, hidden {}, bg color {:?}, tag {}, opaque {}, {} subviews",
         this,
         coder,
         bounds,
         center,
         hidden,
         bg_color,
+        tag,
         opaque,
         subview_count,
     );
@@ -177,6 +183,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg![env; this setHidden:hidden];
     () = msg![env; this setOpaque:opaque];
     () = msg![env; this setBackgroundColor:bg_color];
+    () = msg![env; this setTag:tag];
 
     for i in 0..subview_count {
         let subview: id = msg![env; subviews objectAtIndex:i];
@@ -184,6 +191,26 @@ pub const CLASSES: ClassExports = objc_classes! {
     }
 
     this
+}
+
+- (())setTag:(NSInteger)tag {
+    env.objc.borrow_mut::<UIViewHostObject>(this).tag = tag;
+}
+- (id)viewWithTag:(NSInteger)tag {
+    let &UIViewHostObject {
+        ref subviews,
+        tag: view_tag,
+        ..
+    } = env.objc.borrow(this);
+    if view_tag == tag {
+        return this;
+    }
+    for view in subviews {
+        if env.objc.borrow::<UIViewHostObject>(*view).tag == tag {
+            return *view;
+        }
+    }
+    nil
 }
 
 - (bool)isUserInteractionEnabled {
@@ -336,6 +363,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         superview,
         subviews,
         view_controller,
+        tag: _,
         clears_context_before_drawing: _,
         user_interaction_enabled: _,
         multiple_touch_enabled: _,
