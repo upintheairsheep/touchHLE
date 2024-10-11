@@ -114,7 +114,14 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)initWithAPI:(EAGLRenderingAPI)api sharegroup:(id)group {
-    assert!(api == kEAGLRenderingAPIOpenGLES1);
+    if api != kEAGLRenderingAPIOpenGLES1 {
+        log!(
+            "TODO: App requested EAGL initWithAPI:{} sharegroup:{:?}, returning nil as we only support API 1 for now",
+            api,
+            group
+        );
+        return nil;
+    }
 
     if group == nil {
         return msg![env; this initWithAPI:api];
@@ -136,7 +143,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)initWithAPI:(EAGLRenderingAPI)api {
-    assert!(api == kEAGLRenderingAPIOpenGLES1);
+    if api != kEAGLRenderingAPIOpenGLES1 {
+        log!(
+            "TODO: App requested EAGL initWithAPI:{}, returning nil as we only support API 1 for now",
+            api
+        );
+        return nil;
+    }
 
     let window = env.window.as_mut().expect("OpenGL ES is not supported in headless mode");
     let gles1_ctx = create_gles1_ctx(window, &env.options);
