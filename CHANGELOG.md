@@ -29,8 +29,12 @@ Compatibility:
   - [SimCity](https://appdb.touchhle.org/apps/250) (@ciciplusplus)
   - [Asphalt 5](https://appdb.touchhle.org/apps/411) (@ciciplusplus, @hikari-no-yume)
   - [Cut the Rope](https://appdb.touchhle.org/apps/124) (@ciciplusplus)
+  - [Skater Nation](https://appdb.touchhle.org/apps/424) (@ciciplusplus)
+  - [Iron Man 2](https://appdb.touchhle.org/apps/451) (@ciciplusplus)
+  - [Shrek Forever After](https://appdb.touchhle.org/apps/427) (@ciciplusplus)
+  - [Spore Origins](https://appdb.touchhle.org/apps/302) (@ciciplusplus, @hikari-no-yume, @teromene)
 - API support improvements:
-  - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @LennyKappa)
+  - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @LennyKappa, @hujerhoe)
   - UITextField now supports real text input with a keyboard. On Windows/macOS physical keyboard is used, on Android it's done via a system soft keyboard. (@ciciplusplus)
   - UIScrollView and UITextView partial implementations. (@Skryptonyte, @ciciplusplus)
 
