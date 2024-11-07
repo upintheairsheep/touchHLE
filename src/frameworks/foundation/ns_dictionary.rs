@@ -302,6 +302,30 @@ fn init_with_dictionary_common(env: &mut Environment, this: id, other_dict: id) 
     this
 }
 
+/// Helper function so share `initWithObjects:ForKeys:` implementations
+fn init_with_objects_for_keys_common(env: &mut Environment, this: id, objects: id, keys: id) -> id {
+    let keys_size: NSUInteger = msg![env; keys count];
+    let objects_size: NSUInteger = msg![env; objects count];
+    assert_eq!(keys_size, objects_size); // TODO: raise proper exception
+
+    let mut host_object = <DictionaryHostObject as Default>::default();
+
+    let objects_enumerator: id = msg![env; objects objectEnumerator];
+    let keys_enumerator: id = msg![env; keys objectEnumerator];
+
+    loop {
+        let next_key: id = msg![env; keys_enumerator nextObject];
+        let next_object: id = msg![env; objects_enumerator nextObject];
+        if next_key == nil {
+            assert_eq!(next_object, nil);
+            break;
+        }
+        host_object.insert(env, next_key, next_object, /* copy_key: */ true);
+    }
+    *env.objc.borrow_mut(this) = host_object;
+    this
+}
+
 /// Helper function to share `allKeys` implementations
 fn all_keys_common(env: &mut Environment, this: id) -> id {
     let host_obj: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
@@ -367,6 +391,14 @@ pub const CLASSES: ClassExports = objc_classes! {
         /* array_expected: */ false,
     );
     autorelease(env, res)
+}
+
++ (id)dictionaryWithObjects:(id)objects //NSArray *
+                    forKeys:(id)keys { //NSArray *
+    let new_dict: id = msg![env; this alloc];
+    let new_dict: id = msg![env; new_dict initWithObjects:objects forKeys:keys];
+
+    autorelease(env, new_dict)
 }
 
 + (id)dictionaryWithDictionary:(id)dict { // NSDictionary*
@@ -482,6 +514,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     init_with_dictionary_common(env, this, dictionary)
 }
 
+- (id)initWithObjects:(id)objects //NSArray *
+              forKeys:(id)keys { //NSArray *
+    init_with_objects_for_keys_common(env, this, objects, keys)
+}
+
 // TODO: enumeration, more init methods, etc
 
 - (NSUInteger)count {
@@ -574,6 +611,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     let mut_dict = msg![env; dict mutableCopy];
     release(env, dict);
     mut_dict
+}
+
+- (id)initWithObjects:(id)objects //NSArray *
+              forKeys:(id)keys { //NSArray *
+    init_with_objects_for_keys_common(env, this, objects, keys)
 }
 
 // TODO: enumeration, more init methods, etc
