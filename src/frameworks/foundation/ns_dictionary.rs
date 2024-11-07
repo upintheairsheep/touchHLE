@@ -302,6 +302,23 @@ fn init_with_dictionary_common(env: &mut Environment, this: id, other_dict: id) 
     this
 }
 
+/// Helper function to share `allKeys` implementations
+fn all_keys_common(env: &mut Environment, this: id) -> id {
+    let host_obj: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
+    let keys: Vec<id> = host_obj
+        .map
+        .values()
+        .flatten()
+        .map(|&(key, _value)| key)
+        .collect();
+    *env.objc.borrow_mut(this) = host_obj;
+    for &key in &keys {
+        retain(env, key);
+    }
+    let res = ns_array::from_vec(env, keys);
+    autorelease(env, res)
+}
+
 pub const CLASSES: ClassExports = objc_classes! {
 
 (env, this, _cmd);
@@ -477,6 +494,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     res
 }
 
+- (id)allKeys {
+    all_keys_common(env, this)
+}
+
 // NSCopying implementation
 - (id)copyWithZone:(NSZonePtr)_zone {
     retain(env, this)
@@ -609,16 +630,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)allKeys {
-    let host_obj: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
-    let keys: Vec<id> = host_obj.map.values().flatten().map(|&(key, _value)| key).collect();
-    *env.objc.borrow_mut(this) = host_obj;
-
-    for &key in &keys {
-        retain(env, key);
-    }
-    let res = ns_array::from_vec(env, keys);
-    autorelease(env, res)
+    all_keys_common(env, this)
 }
+
 - (id)allValues {
     let host_obj: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
     let values: Vec<id> = host_obj.map.values().flatten().map(|&(_key, value)| value).collect();
