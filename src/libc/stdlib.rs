@@ -41,7 +41,9 @@ fn calloc(env: &mut Environment, count: GuestUSize, size: GuestUSize) -> MutVoid
     set_errno(env, 0);
 
     let total = size.checked_mul(count).unwrap();
-    env.mem.alloc(total)
+    let res = env.mem.alloc(total);
+    env.mem.bytes_at_mut(res.cast(), total).fill(0);
+    res
 }
 
 fn realloc(env: &mut Environment, ptr: MutVoidPtr, size: GuestUSize) -> MutVoidPtr {
