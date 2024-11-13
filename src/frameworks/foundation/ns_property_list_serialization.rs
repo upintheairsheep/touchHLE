@@ -12,7 +12,9 @@ use super::{
 };
 use crate::fs::GuestPath;
 use crate::mem::{MutPtr, MutVoidPtr};
-use crate::objc::{id, msg, msg_class, nil, objc_classes, release, Class, ClassExports};
+use crate::objc::{
+    autorelease, id, msg, msg_class, nil, objc_classes, release, Class, ClassExports,
+};
 use crate::Environment;
 use plist::Value;
 use std::io::Cursor;
@@ -57,7 +59,8 @@ pub const CLASSES: ClassExports = objc_classes! {
     let slice = ns_data::to_rust_slice(env, data);
     let root = Value::from_reader(Cursor::new(slice)).unwrap();
     assert!(root.as_array().is_some() || root.as_dictionary().is_some());
-    deserialize_plist(env, &root)
+    let res = deserialize_plist(env, &root);
+    autorelease(env, res)
 }
 
 @end
