@@ -24,10 +24,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     if url == nil {
         return nil;
     }
-    let url_str: id = msg![env; url path];
+    let url_desc: id = msg![env; url description];
     log!(
         "TODO: [NSURLRequest requestWithURL:{} cachePolicy:{} timeoutInterval:{}]",
-        to_rust_string(env, url_str),
+        to_rust_string(env, url_desc),
         cache_policy,
         timeout_interval,
     );
