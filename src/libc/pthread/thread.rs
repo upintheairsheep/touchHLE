@@ -91,6 +91,19 @@ pub fn pthread_attr_setdetachstate(
     env.mem.write(attr, attr_copy);
     0 // success
 }
+fn pthread_attr_getstacksize(
+    env: &mut Environment,
+    attr: MutPtr<pthread_attr_t>,
+    stacksize: MutPtr<GuestUSize>,
+) -> i32 {
+    if attr.is_null() {
+        return EINVAL;
+    }
+    check_magic!(env, attr, MAGIC_THREAD);
+    let size = env.mem.read(attr).stacksize;
+    env.mem.write(stacksize, size);
+    0 // success
+}
 pub fn pthread_attr_setstacksize(
     env: &mut Environment,
     attr: MutPtr<pthread_attr_t>,
@@ -307,6 +320,7 @@ fn pthread_setschedparam(
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(pthread_attr_init(_)),
     export_c_func!(pthread_attr_setdetachstate(_, _)),
+    export_c_func!(pthread_attr_getstacksize(_, _)),
     export_c_func!(pthread_attr_setstacksize(_, _)),
     export_c_func!(pthread_attr_destroy(_)),
     export_c_func!(pthread_create(_, _, _, _)),
