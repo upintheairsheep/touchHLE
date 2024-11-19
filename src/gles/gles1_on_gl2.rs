@@ -72,6 +72,7 @@ pub const CAPABILITIES: &[GLenum] = &[
 
 pub const UNSUPPORTED_CAPABILITIES: &[GLenum] = &[
     0x8620, // GL_VERTEX_PROGRAM_NV
+    gl21::TEXTURE,
 ];
 
 pub struct ArrayInfo {
@@ -610,7 +611,11 @@ impl GLES for GLES1OnGL2 {
         } else if UNSUPPORTED_CAPABILITIES.contains(&cap) {
             log_dbg!("Tolerating glDisable({:#x}) of unsupported capability", cap);
         } else {
-            assert!(CAPABILITIES.contains(&cap));
+            assert!(
+                CAPABILITIES.contains(&cap),
+                "Unexpected glDisable({:#x})",
+                cap
+            );
         }
         gl21::Disable(cap);
     }
