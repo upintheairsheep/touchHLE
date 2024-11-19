@@ -257,6 +257,18 @@ fn glColorMask(
         gles.ColorMask(red, green, blue, alpha)
     })
 }
+fn glClipPlanef(env: &mut Environment, plane: GLenum, equation: ConstPtr<GLfloat>) {
+    with_ctx_and_mem(env, |gles, mem| {
+        let equation = mem.ptr_at(equation, 4 /* upper bound */);
+        unsafe { gles.ClipPlanef(plane, equation) }
+    })
+}
+fn glClipPlanex(env: &mut Environment, plane: GLenum, equation: ConstPtr<GLfixed>) {
+    with_ctx_and_mem(env, |gles, mem| {
+        let equation = mem.ptr_at(equation, 4 /* upper bound */);
+        unsafe { gles.ClipPlanex(plane, equation) }
+    })
+}
 fn glCullFace(env: &mut Environment, mode: GLenum) {
     with_ctx_and_mem(env, |gles, _mem| unsafe { gles.CullFace(mode) })
 }
@@ -1341,6 +1353,8 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(glAlphaFuncx(_, _)),
     export_c_func!(glBlendFunc(_, _)),
     export_c_func!(glColorMask(_, _, _, _)),
+    export_c_func!(glClipPlanef(_, _)),
+    export_c_func!(glClipPlanex(_, _)),
     export_c_func!(glCullFace(_)),
     export_c_func!(glDepthFunc(_)),
     export_c_func!(glDepthMask(_)),

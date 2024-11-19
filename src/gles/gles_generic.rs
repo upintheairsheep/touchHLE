@@ -70,6 +70,8 @@ pub trait GLES {
         blue: GLboolean,
         alpha: GLboolean,
     );
+    unsafe fn ClipPlanef(&mut self, plane: GLenum, equation: *const GLfloat);
+    unsafe fn ClipPlanex(&mut self, plane: GLenum, equation: *const GLfixed);
     unsafe fn CullFace(&mut self, mode: GLenum);
     unsafe fn DepthFunc(&mut self, func: GLenum);
     unsafe fn DepthMask(&mut self, flag: GLboolean);

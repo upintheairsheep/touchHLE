@@ -127,6 +127,12 @@ impl GLES for GLES1Native {
     ) {
         gles11::ColorMask(red, green, blue, alpha)
     }
+    unsafe fn ClipPlanef(&mut self, plane: GLenum, equation: *const GLfloat) {
+        gles11::ClipPlanef(plane, equation)
+    }
+    unsafe fn ClipPlanex(&mut self, plane: GLenum, equation: *const GLfixed) {
+        gles11::ClipPlanex(plane, equation)
+    }
     unsafe fn CullFace(&mut self, mode: GLenum) {
         gles11::CullFace(mode)
     }

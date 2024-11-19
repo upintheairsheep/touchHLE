@@ -766,6 +766,48 @@ impl GLES for GLES1OnGL2 {
     ) {
         gl21::ColorMask(red, green, blue, alpha)
     }
+    unsafe fn ClipPlanef(&mut self, plane: GLenum, equation: *const GLfloat) {
+        let mut max_planes = 0;
+        gl21::GetIntegerv(gl21::MAX_CLIP_PLANES, &mut max_planes);
+        assert!(max_planes <= 6);
+        let planes = [
+            gl21::CLIP_PLANE0,
+            gl21::CLIP_PLANE1,
+            gl21::CLIP_PLANE2,
+            gl21::CLIP_PLANE3,
+            gl21::CLIP_PLANE4,
+            gl21::CLIP_PLANE5,
+        ];
+        assert!(planes.contains(&plane));
+
+        let mut equation_double: [GLdouble; 4] = [0.0; 4];
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..4 {
+            equation_double[i] = *equation.wrapping_add(i) as GLdouble;
+        }
+        gl21::ClipPlane(plane, &equation_double as _)
+    }
+    unsafe fn ClipPlanex(&mut self, plane: GLenum, equation: *const GLfixed) {
+        let mut max_planes = 0;
+        gl21::GetIntegerv(gl21::MAX_CLIP_PLANES, &mut max_planes);
+        assert!(max_planes <= 6);
+        let planes = [
+            gl21::CLIP_PLANE0,
+            gl21::CLIP_PLANE1,
+            gl21::CLIP_PLANE2,
+            gl21::CLIP_PLANE3,
+            gl21::CLIP_PLANE4,
+            gl21::CLIP_PLANE5,
+        ];
+        assert!(planes.contains(&plane));
+
+        let mut equation_double: [GLdouble; 4] = [0.0; 4];
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..4 {
+            equation_double[i] = fixed_to_float(*equation.wrapping_add(i)) as GLdouble;
+        }
+        gl21::ClipPlane(plane, &equation_double as _)
+    }
     unsafe fn CullFace(&mut self, mode: GLenum) {
         assert!([gl21::FRONT, gl21::BACK, gl21::FRONT_AND_BACK].contains(&mode));
         gl21::CullFace(mode);
