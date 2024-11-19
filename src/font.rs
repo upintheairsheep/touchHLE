@@ -129,6 +129,15 @@ impl Font {
         Self::from_resource_file("NotoSansJP-Bold.otf")
     }
 
+    pub fn ascent(&self, font_size: f32) -> f32 {
+        let v_metrics = self.font.v_metrics(scale(font_size));
+        v_metrics.ascent
+    }
+    pub fn descent(&self, font_size: f32) -> f32 {
+        let v_metrics = self.font.v_metrics(scale(font_size));
+        v_metrics.descent
+    }
+
     fn line_height_and_gap(&self, font_size: f32) -> (f32, f32) {
         let v_metrics = self.font.v_metrics(scale(font_size));
         (v_metrics.ascent - v_metrics.descent, v_metrics.line_gap)
