@@ -33,11 +33,13 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::iter::Peekable;
 use std::string::FromUtf16Error;
+use yore::code_pages::CP1252;
 
 pub type NSStringEncoding = NSUInteger;
 pub const NSASCIIStringEncoding: NSUInteger = 1;
 pub const NSUTF8StringEncoding: NSUInteger = 4;
 pub const NSUnicodeStringEncoding: NSUInteger = 10;
+pub const NSWindowsCP1252StringEncoding: NSUInteger = 12;
 pub const NSMacOSRomanStringEncoding: NSUInteger = 30;
 pub const NSUTF16StringEncoding: NSUInteger = NSUnicodeStringEncoding;
 pub const NSUTF16BigEndianStringEncoding: NSUInteger = 0x90000100;
@@ -50,8 +52,11 @@ pub const NSBackwardsSearch: NSUInteger = 4;
 pub const NSNumericSearch: NSUInteger = 64;
 
 /// Encodings that C strings (null-terminated byte strings) can use.
-const C_STRING_FRIENDLY_ENCODINGS: &[NSStringEncoding] =
-    &[NSASCIIStringEncoding, NSUTF8StringEncoding];
+const C_STRING_FRIENDLY_ENCODINGS: &[NSStringEncoding] = &[
+    NSASCIIStringEncoding,
+    NSUTF8StringEncoding,
+    NSWindowsCP1252StringEncoding,
+];
 
 pub const NSMaximumStringLength: NSUInteger = (i32::MAX - 1) as _;
 
@@ -102,6 +107,10 @@ impl StringHostObject {
             }
             NSUTF8StringEncoding => {
                 let string = String::from_utf8(bytes.into_owned()).unwrap();
+                StringHostObject::Utf8(Cow::Owned(string))
+            }
+            NSWindowsCP1252StringEncoding => {
+                let string = CP1252.decode(&bytes).to_string();
                 StringHostObject::Utf8(Cow::Owned(string))
             }
             NSUTF16StringEncoding
@@ -1188,7 +1197,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)initWithCString:(ConstPtr<u8>)c_string
              encoding:(NSStringEncoding)encoding {
-    assert!(C_STRING_FRIENDLY_ENCODINGS.contains(&encoding));
+    assert!(C_STRING_FRIENDLY_ENCODINGS.contains(&encoding), "encoding {}", encoding);
     let len: NSUInteger = env.mem.cstr_at(c_string).len().try_into().unwrap();
     msg![env; this initWithBytes:c_string length:len encoding:encoding]
 }
