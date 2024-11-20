@@ -73,6 +73,7 @@ char *strrchr(const char *s, int c);
 size_t strlen(const char *);
 int strncmp(const char *, const char *, size_t);
 size_t strcspn(const char *, const char *);
+char *strdup(const char *);
 
 // <unistd.h>
 typedef unsigned int __uint32_t;
@@ -168,9 +169,11 @@ int swscanf(const wchar_t *, const wchar_t *, ...);
 
 // `CFBase.h`
 
+typedef unsigned char Boolean;
 typedef const void *CFTypeRef;
 typedef const struct _CFAllocator *CFAllocatorRef;
 typedef unsigned int CFStringEncoding;
+typedef unsigned long CFHashCode;
 typedef signed long CFIndex;
 typedef struct {
   CFIndex location;
@@ -198,15 +201,40 @@ CFComparisonResult CFStringCompare(CFStringRef a, CFStringRef b,
 CFRange CFStringFind(CFStringRef theString, CFStringRef stringToFind,
                      CFOptionFlags compareOptions);
 
-// `CFString.h`
+// `CFDictionary.h`
 
 typedef const struct _CFDictionary *CFMutableDictionaryRef;
 
-CFMutableDictionaryRef CFDictionaryCreateMutable(
-    CFAllocatorRef allocator, CFIndex capacity,
-    const void *keyCallBacks,  // TODO: CFDictionaryKeyCallBacks
-    const void *valueCallBacks // TODO: CFDictionaryValueCallBacks
-);
+typedef const void *(*CFDictionaryRetainCallBack)(CFAllocatorRef alloc,
+                                                  const void *value);
+typedef void (*CFDictionaryReleaseCallBack)(CFAllocatorRef alloc,
+                                            const void *val);
+typedef CFStringRef (*CFDictionaryCopyDescriptionCallBack)(const void *val);
+typedef Boolean (*CFDictionaryEqualCallBack)(const void *val1,
+                                             const void *val2);
+typedef CFHashCode (*CFDictionaryHashCallBack)(const void *val);
+
+typedef struct {
+  CFIndex version;
+  CFDictionaryRetainCallBack retain;
+  CFDictionaryReleaseCallBack release;
+  CFDictionaryCopyDescriptionCallBack copyDescription;
+  CFDictionaryEqualCallBack equal;
+  CFDictionaryHashCallBack hash;
+} CFDictionaryKeyCallBacks;
+
+typedef struct {
+  CFIndex version;
+  CFDictionaryRetainCallBack retain;
+  CFDictionaryReleaseCallBack release;
+  CFDictionaryCopyDescriptionCallBack copyDescription;
+  CFDictionaryEqualCallBack equal;
+} CFDictionaryValueCallBacks;
+
+CFMutableDictionaryRef
+CFDictionaryCreateMutable(CFAllocatorRef allocator, CFIndex capacity,
+                          const CFDictionaryKeyCallBacks *keyCallBacks,
+                          const CFDictionaryValueCallBacks *valueCallBacks);
 void CFDictionaryAddValue(CFMutableDictionaryRef dict, const void *key,
                           const void *value);
 void CFDictionarySetValue(CFMutableDictionaryRef dict, const void *key,
@@ -1050,9 +1078,9 @@ int test_realpath() {
 }
 
 int test_CFStringFind() {
-  CFStringRef a = CFStringCreateWithCString(NULL, "/a/b/c/b", 0x0600);
-  CFStringRef b = CFStringCreateWithCString(NULL, "/b", 0x0600);
-  CFStringRef d = CFStringCreateWithCString(NULL, "/d", 0x0600);
+  CFStringRef a = CFStringCreateWithCString(NULL, "/a/b/c/b", 0x600);
+  CFStringRef b = CFStringCreateWithCString(NULL, "/b", 0x600);
+  CFStringRef d = CFStringCreateWithCString(NULL, "/d", 0x600);
   // 0 for default options
   CFRange r = CFStringFind(a, b, 0);
   if (!(r.location == 2 && r.length == 2)) {
@@ -1171,7 +1199,7 @@ int test_open() {
   return 0;
 }
 
-int test_CFMutableDictionary() {
+int test_CFMutableDictionary_NullCallbacks() {
   CFMutableDictionaryRef dict = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
   if (dict == NULL) {
     return -1;
@@ -1257,6 +1285,279 @@ int test_CFMutableDictionary() {
   return 0;
 }
 
+// Counters for checking key/value callbacks
+static int keyRetainCount = 0;
+static int keyReleaseCount = 0;
+static int keyEqualCount = 0;
+static int keyHashCount = 0;
+static int valueRetainCount = 0;
+static int valueReleaseCount = 0;
+static int valueEqualCount = 0;
+
+// Custom CFDictionary key/value callbacks
+const void *TestKeyRetain(CFAllocatorRef allocator, const void *value) {
+  keyRetainCount++;
+  if (value == NULL) {
+    return NULL;
+  }
+  return strdup((const char *)value);
+}
+void TestKeyRelease(CFAllocatorRef allocator, const void *value) {
+  keyReleaseCount++;
+  if (value == NULL) {
+    return;
+  }
+  free((void *)value);
+}
+Boolean TestKeyEqual(const void *value1, const void *value2) {
+  keyEqualCount++;
+  if (value1 == value2) {
+    return 1;
+  }
+  if (value1 == NULL || value2 == NULL) {
+    return 0;
+  }
+  return strcmp((const char *)value1, (const char *)value2) == 0;
+}
+CFHashCode TestKeyHash(const void *value) {
+  keyHashCount++;
+  return (value == NULL) ? 0 : 5;
+}
+const void *TestValueRetain(CFAllocatorRef allocator, const void *value) {
+  valueRetainCount++;
+  return (value == NULL) ? NULL : strdup((const char *)value);
+}
+void TestValueRelease(CFAllocatorRef allocator, const void *value) {
+  valueReleaseCount++;
+  if (value == NULL) {
+    return;
+  }
+  free((void *)value);
+}
+Boolean TestValueEqual(const void *value1, const void *value2) {
+  valueEqualCount++;
+  if (value1 == value2) {
+    return 1;
+  }
+  if (value1 == NULL || value2 == NULL) {
+    return 0;
+  }
+  return strcmp((const char *)value1, (const char *)value2) == 0;
+}
+CFDictionaryKeyCallBacks testKeyCallBacks = {0, // version
+                                             TestKeyRetain,
+                                             TestKeyRelease,
+                                             NULL,
+                                             TestKeyEqual,
+                                             TestKeyHash};
+CFDictionaryValueCallBacks testValueCallBacks = {
+    0, // version
+    TestValueRetain, TestValueRelease, NULL, TestValueEqual};
+
+int test_CFMutableDictionary_CustomCallbacks() {
+  // Reset counters
+  keyRetainCount = keyReleaseCount = keyEqualCount = keyHashCount = 0;
+  valueRetainCount = valueReleaseCount = valueEqualCount = 0;
+
+  CFMutableDictionaryRef dict = CFDictionaryCreateMutable(
+      NULL, 0, &testKeyCallBacks, &testValueCallBacks);
+  if (dict == NULL) {
+    return -1;
+  }
+
+  CFIndex count = CFDictionaryGetCount(dict);
+  if (count != 0) {
+    CFRelease(dict);
+    return -2;
+  }
+
+  const char *key = "Key";
+  const char *value = "Value";
+  CFDictionaryAddValue(dict, key, value);
+
+  // Hash key function should be called at least once
+  if (keyRetainCount != 1 || keyHashCount < 1 || valueRetainCount != 1) {
+    CFRelease(dict);
+    return -3;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(dict);
+    return -4;
+  }
+
+  const void *retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue == NULL) {
+    CFRelease(dict);
+    return -5;
+  }
+  if (strcmp((const char *)retrievedValue, value) != 0) {
+    CFRelease(dict);
+    return -6;
+  }
+  if (keyEqualCount < 1) {
+    CFRelease(dict);
+    return -7;
+  }
+
+  const char *valueNew = "NewValue";
+  CFDictionaryAddValue(dict, key, valueNew);
+  // The key already exists, so the value should not be added
+  if (keyRetainCount != 1 || valueRetainCount != 1) {
+    CFRelease(dict);
+    return -8;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(dict);
+    return -9;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (strcmp((const char *)retrievedValue, value) != 0) {
+    CFRelease(dict);
+    return -10;
+  }
+
+  CFDictionarySetValue(dict, key, NULL);
+  if (valueReleaseCount != 1 || valueRetainCount != 2) {
+    CFRelease(dict);
+    return -11;
+  }
+
+  // Check that count is 1 after setting value to NULL
+  // (NULL is a valid value for CFDictionary!)
+  count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(dict);
+    return -12;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue != NULL) {
+    CFRelease(dict);
+    return -13;
+  }
+  if (keyReleaseCount != 1 || valueReleaseCount != 1) {
+    CFRelease(dict);
+    return -14;
+  }
+
+  CFDictionarySetValue(dict, key, valueNew);
+  if (keyReleaseCount != 2 || valueReleaseCount != 2) {
+    CFRelease(dict);
+    return -15;
+  }
+  if (valueRetainCount != 3) {
+    CFRelease(dict);
+    return -16;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(dict);
+    return -17;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue == NULL ||
+      strcmp((const char *)retrievedValue, valueNew) != 0) {
+    CFRelease(dict);
+    return -18;
+  }
+  if (keyReleaseCount != 2 || valueReleaseCount != 2) {
+    CFRelease(dict);
+    return -19;
+  }
+
+  CFDictionaryRemoveValue(dict, key);
+  if (keyReleaseCount != 3 || valueReleaseCount != 3) {
+    CFRelease(dict);
+    return -20;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 0) {
+    CFRelease(dict);
+    return -21;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue != NULL) {
+    CFRelease(dict);
+    return -22;
+  }
+  if (keyRetainCount != 3 || valueRetainCount != 3) {
+    CFRelease(dict);
+    return -23;
+  }
+
+  CFDictionaryAddValue(dict, key, value);
+  if (keyRetainCount != 4 || valueRetainCount != 4) {
+    CFRelease(dict);
+    return -24;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(dict);
+    return -25;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue == NULL ||
+      strcmp((const char *)retrievedValue, value) != 0) {
+    CFRelease(dict);
+    return -26;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(dict);
+    return -27;
+  }
+
+  const void **keys = malloc(sizeof(void *) * count);
+  const void **values = malloc(sizeof(void *) * count);
+  CFDictionaryGetKeysAndValues(dict, keys, values);
+  if (strcmp((const char *)keys[0], key) != 0 ||
+      strcmp((const char *)values[0], value) != 0) {
+    free(keys);
+    free(values);
+    CFRelease(dict);
+    return -28;
+  }
+  free(keys);
+  free(values);
+  if (keyReleaseCount != 3 || valueReleaseCount != 3) {
+    CFRelease(dict);
+    return -29;
+  }
+
+  CFDictionaryRemoveAllValues(dict);
+  if (keyReleaseCount != 4 || valueReleaseCount != 4) {
+    CFRelease(dict);
+    return -30;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 0) {
+    CFRelease(dict);
+    return -31;
+  }
+
+  // Check that value equality callback was not called (based on macOS behavior)
+  if (valueEqualCount != 0) {
+    CFRelease(dict);
+    return -32;
+  }
+
+  CFRelease(dict);
+  return 0;
+}
+
 // clang-format off
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
@@ -1293,7 +1594,8 @@ struct {
     FUNC_DEF(test_fwrite),
     FUNC_DEF(test_open),
     FUNC_DEF(test_cond_var),
-    FUNC_DEF(test_CFMutableDictionary),
+    FUNC_DEF(test_CFMutableDictionary_NullCallbacks),
+    FUNC_DEF(test_CFMutableDictionary_CustomCallbacks),
 };
 // clang-format on
 

@@ -11,6 +11,9 @@
 use super::cf_allocator::{kCFAllocatorDefault, CFAllocatorRef};
 use super::CFIndex;
 use crate::dyld::{export_c_func, FunctionExports};
+use crate::frameworks::foundation::ns_dictionary::{
+    CFDictionaryKeyCallBacks, CFDictionaryValueCallBacks,
+};
 use crate::frameworks::foundation::NSUInteger;
 use crate::mem::{ConstPtr, ConstVoidPtr, MutVoidPtr};
 use crate::objc::{id, msg, msg_class, nil};
@@ -23,15 +26,14 @@ fn CFDictionaryCreateMutable(
     env: &mut Environment,
     allocator: CFAllocatorRef,
     capacity: CFIndex,
-    key_callbacks: ConstVoidPtr, // TODO, should be `const CFDictionaryKeyCallBacks*`
-    value_callbacks: ConstVoidPtr, // TODO, should be `const CFDictionaryValueCallBacks*`
+    key_callbacks: ConstPtr<CFDictionaryKeyCallBacks>,
+    value_callbacks: ConstPtr<CFDictionaryValueCallBacks>,
 ) -> CFMutableDictionaryRef {
     assert_eq!(allocator, kCFAllocatorDefault); // unimplemented
     assert_eq!(capacity, 0); // TODO: fixed capacity support
-    assert!(key_callbacks.is_null()); // TODO: support retaining etc
-    assert!(value_callbacks.is_null()); // TODO: support retaining etc
 
-    msg_class![env; _touchHLE_NSMutableDictionary_non_retaining new]
+    let new = msg_class![env; _touchHLE_NSMutableDictionary_non_retaining alloc];
+    msg![env; new initWithKeyCallbacks:key_callbacks andValueCallbacks:value_callbacks]
 }
 
 fn CFDictionaryAddValue(

@@ -31,6 +31,7 @@ pub mod time;
 
 pub use cf_type::{CFRelease, CFRetain, CFTypeRef};
 
+pub type CFHashCode = u32;
 pub type CFIndex = i32;
 pub type CFOptionFlags = u32;
 

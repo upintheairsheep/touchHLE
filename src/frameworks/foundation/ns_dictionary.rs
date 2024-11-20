@@ -11,14 +11,16 @@ use super::ns_property_list_serialization::{
 };
 use super::ns_string::{from_rust_string, to_rust_string};
 use super::{ns_string, ns_url, NSUInteger};
-use crate::abi::VaList;
+use crate::abi::{CallFromHost, GuestFunction, VaList};
+use crate::frameworks::core_foundation::{CFHashCode, CFIndex};
 use crate::fs::GuestPath;
-use crate::mem::{MutPtr, Ptr};
+use crate::mem::{ConstPtr, MutPtr, Ptr, SafeRead};
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, release, retain, ClassExports, HostObject,
     NSZonePtr,
 };
-use crate::Environment;
+use crate::{impl_HostObject_with_superclass, Environment};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 /// Alias for the return type of the `hash` method of the `NSObject` protocol.
@@ -85,6 +87,173 @@ impl DictionaryHostObject {
     }
     pub(super) fn iter_keys(&self) -> impl Iterator<Item = id> + '_ {
         self.map.values().flatten().map(|&(key, _value)| key)
+    }
+}
+
+// TODO: move those definitions to cf_dictionary.rs
+// Right now they are here because we're too tied to
+// NSDictionary internals, but separation could be cleaner?
+#[repr(C, packed)]
+pub struct CFDictionaryKeyCallBacks {
+    version: CFIndex,         // version
+    retain: GuestFunction,    // const void *(*retain)(CFAllocatorRef, const void *value)
+    release: GuestFunction,   // void (*release)(CFAllocatorRef alloc, const void *val)
+    copy_desc: GuestFunction, // CFStringRef (*copy_desc)(const void *val)
+    equal: GuestFunction,     // Boolean (*equal)(const void *val1, const void *val2)
+    hash: GuestFunction,      // CFHashCode (*hash)(const void *val)
+}
+unsafe impl SafeRead for CFDictionaryKeyCallBacks {}
+
+#[repr(C, packed)]
+pub struct CFDictionaryValueCallBacks {
+    version: CFIndex,         // version
+    retain: GuestFunction,    // const void *(*retain)(CFAllocatorRef, const void *value)
+    release: GuestFunction,   // void (*release)(CFAllocatorRef alloc, const void *val)
+    copy_desc: GuestFunction, // CFStringRef (*copy_desc)(const void *val)
+    equal: GuestFunction,     // Boolean (*equal)(const void *val1, const void *val2)
+}
+unsafe impl SafeRead for CFDictionaryValueCallBacks {}
+
+/// The choice of implementing CFDictionary as subclass
+/// of NSDictionary is not a hard truth but a reflection
+/// on the omnipresence of current NSDictionary implementation
+/// as base of NSSet or usage of internals for property lists.
+/// It's probably desirable to implement NSDictionary _atop of_
+/// CFDictionary instead, but this requires considerable
+/// refactoring, which I'm not very comfortable to do on
+/// partially tested codebase (we do not have ability right
+/// now to test NS objects directly, only CF variants ;( )
+/// See TODO comment on the impl too.
+pub struct CFDictionaryHostObject {
+    superclass: DictionaryHostObject,
+    /// `CFDictionaryKeyCallBacks`
+    key_callbacks: CFDictionaryKeyCallBacks,
+    /// `CFDictionaryValueCallBacks`
+    value_callbacks: CFDictionaryValueCallBacks,
+}
+impl_HostObject_with_superclass!(CFDictionaryHostObject);
+impl Default for CFDictionaryHostObject {
+    fn default() -> Self {
+        CFDictionaryHostObject {
+            superclass: Default::default(),
+            key_callbacks: CFDictionaryKeyCallBacks {
+                version: 0, // version is always 0
+                retain: GuestFunction::null_ptr(),
+                release: GuestFunction::null_ptr(),
+                copy_desc: GuestFunction::null_ptr(),
+                equal: GuestFunction::null_ptr(),
+                hash: GuestFunction::null_ptr(),
+            },
+            value_callbacks: CFDictionaryValueCallBacks {
+                version: 0, // version is always 0
+                retain: GuestFunction::null_ptr(),
+                release: GuestFunction::null_ptr(),
+                copy_desc: GuestFunction::null_ptr(),
+                equal: GuestFunction::null_ptr(),
+            },
+        }
+    }
+}
+// TODO: Unify implementations of NSDictionary and CFDictionary
+impl CFDictionaryHostObject {
+    fn lookup(&self, env: &mut Environment, key: id) -> id {
+        let hash = self.hash(env, key);
+        let Some(collisions) = self.superclass.map.get(&hash) else {
+            return nil;
+        };
+        for &(candidate_key, value) in collisions {
+            if self.equal_keys(env, candidate_key, key) {
+                return value;
+            }
+        }
+        nil
+    }
+    fn insert(&mut self, env: &mut Environment, key: id, value: id) {
+        let hash = self.hash(env, key);
+        let key = self.retain_key(env, key);
+        let value = self.retain_value(env, value);
+        self.superclass.count += 1;
+        if let Entry::Vacant(e) = self.superclass.map.entry(hash) {
+            e.insert(vec![(key, value)]);
+            return;
+        };
+        // remove if present (count will be decremented if necessary)
+        self.remove(env, key);
+        self.superclass
+            .map
+            .get_mut(&hash)
+            .unwrap()
+            .push((key, value));
+    }
+    fn remove(&mut self, env: &mut Environment, key: id) -> bool {
+        let hash = self.hash(env, key);
+        let Some(collisions) = self.superclass.map.get(&hash) else {
+            return false;
+        };
+        let maybe_pos = collisions
+            .iter()
+            .position(|&(candidate_key, _)| self.equal_keys(env, candidate_key, key));
+        if let Some(pos) = maybe_pos {
+            let (existing_key, existing_value) =
+                self.superclass.map.get_mut(&hash).unwrap().remove(pos);
+            self.release_key(env, existing_key);
+            self.release_value(env, existing_value);
+            self.superclass.count -= 1;
+            true
+        } else {
+            false
+        }
+    }
+    // helpers
+    fn hash(&self, env: &mut Environment, key: id) -> CFHashCode {
+        let hash_func = self.key_callbacks.hash;
+        if hash_func.to_ptr().is_null() {
+            // use the pointer value as a hash code
+            key.to_bits()
+        } else {
+            hash_func.call_from_host(env, (key,))
+        }
+    }
+    fn equal_keys(&self, env: &mut Environment, key1: id, key2: id) -> bool {
+        let equal_func = self.key_callbacks.equal;
+        if equal_func.to_ptr().is_null() {
+            // pointer equality
+            key1 == key2
+        } else {
+            equal_func.call_from_host(env, (key1, key2))
+        }
+    }
+    fn retain_key(&mut self, env: &mut Environment, key: id) -> id {
+        let key_retain_func = self.key_callbacks.retain;
+        if key_retain_func.to_ptr().is_null() {
+            key
+        } else {
+            // TODO: custom dict allocator
+            key_retain_func.call_from_host(env, (nil, key))
+        }
+    }
+    fn release_key(&mut self, env: &mut Environment, key: id) {
+        let key_release_func = self.key_callbacks.release;
+        if !key_release_func.to_ptr().is_null() {
+            // TODO: custom dict allocator
+            key_release_func.call_from_host(env, (nil, key))
+        }
+    }
+    fn retain_value(&mut self, env: &mut Environment, value: id) -> id {
+        let value_retain_func = self.value_callbacks.retain;
+        if value_retain_func.to_ptr().is_null() {
+            value
+        } else {
+            // TODO: custom dict allocator
+            value_retain_func.call_from_host(env, (nil, value))
+        }
+    }
+    fn release_value(&mut self, env: &mut Environment, value: id) {
+        let value_release_func = self.value_callbacks.release;
+        if !value_release_func.to_ptr().is_null() {
+            // TODO: custom dict allocator
+            value_release_func.call_from_host(env, (nil, value))
+        }
     }
 }
 
@@ -391,6 +560,23 @@ pub const CLASSES: ClassExports = objc_classes! {
 // TODO: refactor with lookup/insert methods to use callbacks
 @implementation _touchHLE_NSMutableDictionary_non_retaining: _touchHLE_NSMutableDictionary
 
++ (id)allocWithZone:(NSZonePtr)_zone {
+    let host_object = Box::<CFDictionaryHostObject>::default();
+    env.objc.alloc_object(this, host_object, &mut env.mem)
+}
+
+// our custom init, not a part of API
+- (id)initWithKeyCallbacks:(ConstPtr<CFDictionaryKeyCallBacks>)key_callbacks
+         andValueCallbacks:(ConstPtr<CFDictionaryValueCallBacks>)value_callbacks {
+    if !key_callbacks.is_null() {
+        assert!(!value_callbacks.is_null());
+        let host_object = env.objc.borrow_mut::<CFDictionaryHostObject>(this);
+        host_object.key_callbacks = env.mem.read(key_callbacks);
+        host_object.value_callbacks = env.mem.read(value_callbacks);
+    };
+    this
+}
+
 - (())dealloc {
     env.objc.dealloc_object(this, &mut env.mem)
 }
@@ -409,61 +595,29 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)objectForKey:(id)key {
-    // TODO: use CFDictionaryHashCallBack
-    let hash: Hash = key.to_bits();
-    let host_obj: &mut DictionaryHostObject = env.objc.borrow_mut(this);
-    let Some(collisions) = host_obj.map.get(&hash) else {
-        return nil;
-    };
-    for &(candidate_key, value) in collisions {
-        // TODO: use CFDictionaryEqualCallBack
-        if candidate_key == key {
-            return value;
-        }
-    }
-    nil
+    let host_obj: CFDictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
+    let res = host_obj.lookup(env, key);
+    *env.objc.borrow_mut(this) = host_obj;
+    res
 }
 
 - (id)valueForKey:(id)_key {
     panic!("Unexpected call to valueForKey: for _touchHLE_NSMutableDictionary_non_retaining object {:?}", this);
 }
 
-- (())setObject:(id)value
+- (())setObject:(id)object
          forKey:(id)key {
     assert!(!key.is_null());
-    // TODO: use CFDictionaryHashCallBack
-    let hash: Hash = key.to_bits();
-    let host_obj: &mut DictionaryHostObject = env.objc.borrow_mut(this);
-    let Some(collisions) = host_obj.map.get_mut(&hash) else {
-        host_obj.map.insert(hash, vec![(key, value)]);
-        host_obj.count += 1;
-        return;
-    };
-    for &mut (candidate_key, ref mut existing_value) in collisions.iter_mut() {
-        // TODO: use CFDictionaryEqualCallBack
-        if candidate_key == key {
-            *existing_value = value;
-            return;
-        }
-    }
-    collisions.push((key, value));
-    host_obj.count += 1;
+    let mut host_obj: CFDictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
+    host_obj.insert(env, key, object);
+    *env.objc.borrow_mut(this) = host_obj;
 }
 
 - (())removeObjectForKey:(id)key {
     assert!(!key.is_null());
-    // TODO: use CFDictionaryHashCallBack
-    let hash: Hash = key.to_bits();
-    let host_obj: &mut DictionaryHostObject = env.objc.borrow_mut(this);
-    let Some(collisions) = host_obj.map.get_mut(&hash) else {
-        return;
-    };
-    let idx = collisions.iter().position(|&(candidate_key, _)| {
-        // TODO: use CFDictionaryEqualCallBack
-        candidate_key == key
-    }).unwrap();
-    collisions.remove(idx);
-    host_obj.count -= 1;
+    let mut host_obj: CFDictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
+    host_obj.remove(env, key);
+    *env.objc.borrow_mut(this) = host_obj;
 }
 
 - (id)allKeys {
