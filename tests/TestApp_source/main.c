@@ -184,7 +184,10 @@ typedef const struct _CFDictionary *CFDictionaryRef;
 typedef const struct _CFString *CFStringRef;
 typedef const struct _CFString *CFMutableStringRef;
 
+CFTypeRef CFRetain(CFTypeRef cf);
 void CFRelease(CFTypeRef cf);
+Boolean CFEqual(CFTypeRef cf1, CFTypeRef cf2);
+CFHashCode CFHash(CFTypeRef cf);
 
 // `CFString.h`
 
@@ -1354,7 +1357,7 @@ CFDictionaryValueCallBacks testValueCallBacks = {
     0, // version
     TestValueRetain, TestValueRelease, NULL, TestValueEqual};
 
-int test_CFMutableDictionary_CustomCallbacks() {
+int test_CFMutableDictionary_CustomCallbacks_PrimitiveTypes() {
   // Reset counters
   keyRetainCount = keyReleaseCount = keyEqualCount = keyHashCount = 0;
   valueRetainCount = valueReleaseCount = valueEqualCount = 0;
@@ -1558,6 +1561,298 @@ int test_CFMutableDictionary_CustomCallbacks() {
   return 0;
 }
 
+// Counters for retain and release.
+//
+// We couldn't relay on the retainCounts of the objects directly
+// as Objective-C retainCount method is meant to be for debug
+// purposes only and modern versions are using tagged pointers anyway,
+// thus return value of this method can be meaningless.
+// Instead, we hook counter to the retain/release callbacks
+// and check for changes in deltas
+// (because actual counts could be different between implementations).
+static int retainCount = 0;
+static int releaseCount = 0;
+
+// Callbacks similar to kCFTypeDictionaryKeyCallBacks and
+// kCFTypeDictionaryValueCallBacks
+const void *CFRetainWrapper(CFAllocatorRef allocator, const void *value) {
+  retainCount++;
+  return CFRetain(value);
+}
+
+void CFReleaseWrapper(CFAllocatorRef allocator, const void *value) {
+  releaseCount++;
+  CFRelease(value);
+}
+CFHashCode CFHashWrapper(const void *value) { return CFHash(value); }
+Boolean CFEqualWrapper(const void *value1, const void *value2) {
+  return CFEqual(value1, value2);
+}
+CFDictionaryKeyCallBacks testDefaultKeyCallBacks = {
+    0, // version
+    CFRetainWrapper,
+    CFReleaseWrapper,
+    NULL, // stub of CFCopyDescription
+    CFEqualWrapper,
+    CFHashWrapper};
+CFDictionaryValueCallBacks testDefaultValueCallBacks = {
+    0, // version
+    CFRetainWrapper, CFReleaseWrapper,
+    NULL, // stub of CFCopyDescription
+    CFEqualWrapper};
+
+int test_CFMutableDictionary_CustomCallbacks_CFTypes() {
+  // Reset counters
+  retainCount = 0;
+  releaseCount = 0;
+
+  CFMutableDictionaryRef dict = CFDictionaryCreateMutable(
+      NULL, 0, &testDefaultKeyCallBacks, &testDefaultValueCallBacks);
+  if (dict == NULL) {
+    return -1;
+  }
+
+  CFStringRef key = CFStringCreateWithCString(NULL, "Key", 0x600);
+  CFStringRef value = CFStringCreateWithCString(NULL, "Value", 0x600);
+  if (key == NULL || value == NULL) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(dict);
+    return -2;
+  }
+
+  // Create copies to be stored in the dictionary
+  CFStringRef key1 = CFStringCreateWithCString(NULL, "Key", 0x600);
+  CFStringRef value1 = CFStringCreateWithCString(NULL, "Value", 0x600);
+
+  int retainCountBefore = retainCount;
+  int releaseCountBefore = releaseCount;
+
+  CFDictionaryAddValue(dict, key1, value1);
+
+  int deltaRetain = retainCount - retainCountBefore;
+  int deltaRelease = releaseCount - releaseCountBefore;
+  // For the purpose of this test, we only care about delta between
+  // retain and release counts, e.g. receiving 1 retain and 1 release
+  // has the same net effect as receiving 2 retains and 2 releases,
+  // as delta for both of them is 0
+  int globalDelta = deltaRetain - deltaRelease;
+
+  if (globalDelta != 2) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(key1);
+    CFRelease(value1);
+    CFRelease(dict);
+    return -3;
+  }
+
+  // Release key1 and value1 since the dictionary has retained them
+  CFRelease(key1);
+  CFRelease(value1);
+
+  const void *retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue == NULL) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(dict);
+    return -4;
+  }
+  if (!CFEqual((CFStringRef)retrievedValue, value)) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(dict);
+    return -5;
+  }
+
+  CFStringRef valueNew = CFStringCreateWithCString(NULL, "NewValue", 0x600);
+  if (valueNew == NULL) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(dict);
+    return -6;
+  }
+
+  retainCountBefore = retainCount;
+  releaseCountBefore = releaseCount;
+
+  CFDictionaryAddValue(dict, key, valueNew);
+
+  // Since the key already exists, the new value should not be added
+  deltaRetain = retainCount - retainCountBefore;
+  deltaRelease = releaseCount - releaseCountBefore;
+  globalDelta = deltaRetain - deltaRelease;
+
+  if (globalDelta != 0) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -7;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (!CFEqual((CFStringRef)retrievedValue, value)) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -8;
+  }
+
+  retainCountBefore = retainCount;
+  releaseCountBefore = releaseCount;
+
+  CFDictionarySetValue(dict, key, valueNew);
+
+  deltaRetain = retainCount - retainCountBefore;
+  deltaRelease = releaseCount - releaseCountBefore;
+  globalDelta = deltaRetain - deltaRelease;
+
+  if (globalDelta != 0) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -9;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (!CFEqual((CFStringRef)retrievedValue, valueNew)) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -10;
+  }
+
+  retainCountBefore = retainCount;
+  releaseCountBefore = releaseCount;
+
+  CFDictionaryRemoveValue(dict, key);
+
+  deltaRetain = retainCount - retainCountBefore;
+  deltaRelease = releaseCount - releaseCountBefore;
+  // The dictionary should release the key and value
+  // So delta should be -2
+  globalDelta = deltaRetain - deltaRelease;
+
+  if (globalDelta != -2) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -11;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (retrievedValue != NULL) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -12;
+  }
+
+  retainCountBefore = retainCount;
+  releaseCountBefore = releaseCount;
+
+  CFDictionaryAddValue(dict, key, value);
+
+  deltaRetain = retainCount - retainCountBefore;
+  deltaRelease = releaseCount - releaseCountBefore;
+  // The dictionary should retain the key and value
+  // So delta should be +2
+  globalDelta = deltaRetain - deltaRelease;
+
+  if (globalDelta != 2) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -13;
+  }
+
+  retrievedValue = CFDictionaryGetValue(dict, key);
+  if (!CFEqual((CFStringRef)retrievedValue, value)) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -14;
+  }
+
+  CFIndex count = CFDictionaryGetCount(dict);
+  if (count != 1) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -15;
+  }
+
+  const void **keys = malloc(sizeof(void *) * count);
+  const void **values = malloc(sizeof(void *) * count);
+  if (keys == NULL || values == NULL) {
+    free(keys);
+    free(values);
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -16;
+  }
+  CFDictionaryGetKeysAndValues(dict, keys, values);
+
+  if (!CFEqual((CFStringRef)keys[0], key) ||
+      !CFEqual((CFStringRef)values[0], value)) {
+    free(keys);
+    free(values);
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -17;
+  }
+  free(keys);
+  free(values);
+
+  retainCountBefore = retainCount;
+  releaseCountBefore = releaseCount;
+
+  CFDictionaryRemoveAllValues(dict);
+
+  deltaRetain = retainCount - retainCountBefore;
+  deltaRelease = releaseCount - releaseCountBefore;
+  // The dictionary should release the key and value
+  // So delta should be -2
+  globalDelta = deltaRetain - deltaRelease;
+
+  if (globalDelta != -2) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -18;
+  }
+
+  count = CFDictionaryGetCount(dict);
+  if (count != 0) {
+    CFRelease(key);
+    CFRelease(value);
+    CFRelease(valueNew);
+    CFRelease(dict);
+    return -19;
+  }
+
+  CFRelease(key);
+  CFRelease(value);
+  CFRelease(valueNew);
+  CFRelease(dict);
+
+  return 0;
+}
+
 // clang-format off
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
@@ -1595,7 +1890,8 @@ struct {
     FUNC_DEF(test_open),
     FUNC_DEF(test_cond_var),
     FUNC_DEF(test_CFMutableDictionary_NullCallbacks),
-    FUNC_DEF(test_CFMutableDictionary_CustomCallbacks),
+    FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_PrimitiveTypes),
+    FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_CFTypes),
 };
 // clang-format on
 
