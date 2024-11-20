@@ -46,7 +46,7 @@ impl DictionaryHostObject {
             return nil;
         };
         for &(candidate_key, value) in collisions {
-            if candidate_key == key || msg![env; candidate_key isEqualTo:key] {
+            if candidate_key == key || msg![env; candidate_key isEqual:key] {
                 return value;
             }
         }
@@ -68,7 +68,7 @@ impl DictionaryHostObject {
             return;
         };
         for &mut (candidate_key, ref mut existing_value) in collisions.iter_mut() {
-            if candidate_key == key || msg![env; candidate_key isEqualTo:key] {
+            if candidate_key == key || msg![env; candidate_key isEqual:key] {
                 release(env, *existing_value);
                 *existing_value = value;
                 return;
