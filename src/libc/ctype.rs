@@ -122,9 +122,9 @@ fn get_default_rune_locale(mem: &mut Mem) -> ConstVoidPtr {
         magic: *b"RuneMagA",
         encoding,
 
-        getrune: GuestFunction::from_addr_with_thumb_bit(0), // TODO
-        putrune: GuestFunction::from_addr_with_thumb_bit(0), // TODO
-        invalid_rune: -1,                                    // probably not correct
+        getrune: GuestFunction::null_ptr(), // TODO
+        putrune: GuestFunction::null_ptr(), // TODO
+        invalid_rune: -1,                   // probably not correct
 
         runetype,
         map_lower,

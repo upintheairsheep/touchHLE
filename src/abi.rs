@@ -82,6 +82,11 @@ impl GuestFunction {
             self
         );
     }
+
+    /// A shorthand function for `GuestFunction::from_addr_with_thumb_bit(0)`
+    pub fn null_ptr() -> Self {
+        GuestFunction(Ptr::null())
+    }
 }
 
 /// This trait represents a host function that can be called from guest code.

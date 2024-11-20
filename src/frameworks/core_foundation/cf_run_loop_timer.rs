@@ -118,7 +118,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 + (id)allocWithZone:(NSZonePtr)_zone {
     let host_object = Box::new(CFTimerTargetHostObject {
-        callout: GuestFunction::from_addr_with_thumb_bit(0),
+        callout: GuestFunction::null_ptr(),
         info: MutVoidPtr::null()
     });
     env.objc.alloc_object(this, host_object, &mut env.mem)
