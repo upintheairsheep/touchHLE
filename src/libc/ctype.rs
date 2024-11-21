@@ -7,7 +7,7 @@
 
 use super::wchar::wchar_t;
 use crate::abi::GuestFunction;
-use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant};
+use crate::dyld::{export_c_func, ConstantExports, Dyld, FunctionExports, HostConstant};
 use crate::mem::{ConstVoidPtr, Mem, MutVoidPtr, Ptr, SafeRead};
 use crate::Environment;
 
@@ -58,7 +58,7 @@ struct RuneLocale {
 }
 unsafe impl SafeRead for RuneLocale {}
 
-fn get_default_rune_locale(mem: &mut Mem) -> ConstVoidPtr {
+fn get_default_rune_locale(mem: &mut Mem, _: &mut Dyld) -> ConstVoidPtr {
     let mut runetype = [0u32; LOOKUP_TABLE_SIZE];
     let mut map_lower = [0 as darwin_rune_t; LOOKUP_TABLE_SIZE];
     let mut map_upper = [0 as darwin_rune_t; LOOKUP_TABLE_SIZE];

@@ -407,21 +407,21 @@ fn fileno(env: &mut Environment, file_ptr: MutPtr<FILE>) -> posix_io::FileDescri
 pub const CONSTANTS: ConstantExports = &[
     (
         "___stdinp",
-        HostConstant::Custom(|mem: &mut Mem| -> ConstVoidPtr {
+        HostConstant::Custom(|mem: &mut Mem, _| -> ConstVoidPtr {
             let ptr = mem.alloc_and_write(FILE { fd: STDIN_FILENO });
             mem.alloc_and_write(ptr).cast().cast_const()
         }),
     ),
     (
         "___stdoutp",
-        HostConstant::Custom(|mem: &mut Mem| -> ConstVoidPtr {
+        HostConstant::Custom(|mem: &mut Mem, _| -> ConstVoidPtr {
             let ptr = mem.alloc_and_write(FILE { fd: STDOUT_FILENO });
             mem.alloc_and_write(ptr).cast().cast_const()
         }),
     ),
     (
         "___stderrp",
-        HostConstant::Custom(|mem: &mut Mem| -> ConstVoidPtr {
+        HostConstant::Custom(|mem: &mut Mem, _| -> ConstVoidPtr {
             let ptr = mem.alloc_and_write(FILE { fd: STDERR_FILENO });
             mem.alloc_and_write(ptr).cast().cast_const()
         }),

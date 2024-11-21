@@ -109,7 +109,7 @@ pub use crate::export_c_func_aliased; // #[macro_export] is weird...
 pub enum HostConstant {
     NSString(&'static str),
     NullPtr,
-    Custom(fn(&mut Mem) -> ConstVoidPtr),
+    Custom(fn(&mut Mem, &mut Dyld) -> ConstVoidPtr),
 }
 
 /// Type for lists of constants exported by host implementations of frameworks.
@@ -445,7 +445,7 @@ impl Dyld {
                     let null_ptr_ptr = env.mem.alloc_and_write(null_ptr);
                     null_ptr_ptr.cast().cast_const()
                 }
-                HostConstant::Custom(f) => f(&mut env.mem),
+                HostConstant::Custom(f) => f(&mut env.mem, &mut env.dyld),
             };
             env.mem.write(symbol_ptr_ptr, symbol_ptr.cast());
         }

@@ -16,5 +16,5 @@ pub const MACH_TASK_SELF: mach_port_t = 0x7461736b;
 
 pub const CONSTANTS: ConstantExports = &[(
     "_mach_task_self_",
-    HostConstant::Custom(|mem| mem.alloc_and_write(MACH_TASK_SELF).cast_void().cast_const()),
+    HostConstant::Custom(|mem, _| mem.alloc_and_write(MACH_TASK_SELF).cast_void().cast_const()),
 )];
