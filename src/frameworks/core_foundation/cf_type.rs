@@ -27,7 +27,7 @@ pub fn CFGetRetainCount(env: &mut Environment, object: CFTypeRef) -> CFIndex {
     count as CFIndex
 }
 
-fn CFEqual(env: &mut Environment, object1: CFTypeRef, object2: CFTypeRef) -> bool {
+pub fn CFEqual(env: &mut Environment, object1: CFTypeRef, object2: CFTypeRef) -> bool {
     if object1 == object2 {
         return true;
     }
@@ -41,7 +41,7 @@ fn CFEqual(env: &mut Environment, object1: CFTypeRef, object2: CFTypeRef) -> boo
     msg![env; object1 isEqualToString:object2]
 }
 
-fn CFHash(env: &mut Environment, object: CFTypeRef) -> CFHashCode {
+pub fn CFHash(env: &mut Environment, object: CFTypeRef) -> CFHashCode {
     msg![env; object hash]
 }
 

@@ -19,6 +19,7 @@ pub const CONSTANT_LISTS: &[super::ConstantExports] = &[
     core_animation::ca_layer::CONSTANTS,
     core_foundation::cf_allocator::CONSTANTS,
     core_foundation::cf_bundle::CONSTANTS,
+    core_foundation::cf_dictionary::CONSTANTS,
     core_foundation::cf_run_loop::CONSTANTS,
     core_graphics::cg_affine_transform::CONSTANTS,
     core_graphics::cg_color_space::CONSTANTS,

@@ -9,13 +9,18 @@
 //! Apple's implementation. Here they are the same types.
 
 use super::cf_allocator::{kCFAllocatorDefault, CFAllocatorRef};
-use super::CFIndex;
-use crate::dyld::{export_c_func, FunctionExports};
+use super::{CFHashCode, CFIndex, CFRelease, CFRetain};
+use crate::abi::GuestFunction;
+use crate::dyld::{
+    export_c_func, ConstantExports, Dyld, FunctionExports, HostConstant, HostFunction,
+};
+use crate::frameworks::core_foundation::cf_string::CFStringRef;
+use crate::frameworks::core_foundation::cf_type::{CFEqual, CFHash};
 use crate::frameworks::foundation::ns_dictionary::{
     CFDictionaryKeyCallBacks, CFDictionaryValueCallBacks,
 };
 use crate::frameworks::foundation::NSUInteger;
-use crate::mem::{ConstPtr, ConstVoidPtr, MutVoidPtr};
+use crate::mem::{ConstPtr, ConstVoidPtr, Mem, MutVoidPtr};
 use crate::objc::{id, msg, msg_class, nil};
 use crate::Environment;
 
@@ -140,6 +145,116 @@ fn CFDictionaryGetKeysAndValues(
         }
     }
 }
+
+// Default CFDictionary callbacks
+fn _touchHLE_CFDictionary_retain(
+    env: &mut Environment,
+    allocator: CFAllocatorRef,
+    value: ConstVoidPtr,
+) -> ConstVoidPtr {
+    assert_eq!(allocator, kCFAllocatorDefault); // unimplemented
+    CFRetain(env, value.cast_mut().cast()).cast_const().cast()
+}
+fn _touchHLE_CFDictionary_release(
+    env: &mut Environment,
+    allocator: CFAllocatorRef,
+    value: ConstVoidPtr,
+) {
+    assert_eq!(allocator, kCFAllocatorDefault); // unimplemented
+    CFRelease(env, value.cast_mut().cast());
+}
+fn _touchHLE_CFDictionary_copyDescription(
+    _env: &mut Environment,
+    _value: ConstVoidPtr,
+) -> CFStringRef {
+    todo!()
+}
+fn _touchHLE_CFDictionary_equal(
+    env: &mut Environment,
+    value1: ConstVoidPtr,
+    value2: ConstVoidPtr,
+) -> bool {
+    CFEqual(env, value1.cast_mut().cast(), value2.cast_mut().cast())
+}
+fn _touchHLE_CFDictionary_hash(env: &mut Environment, value: ConstVoidPtr) -> CFHashCode {
+    CFHash(env, value.cast_mut().cast())
+}
+
+struct DefaultCallbackFunctions {
+    retain: GuestFunction,
+    release: GuestFunction,
+    copy_desc: GuestFunction,
+    equal: GuestFunction,
+    hash: GuestFunction,
+}
+fn create_default_callback_functions(mem: &mut Mem, dyld: &mut Dyld) -> DefaultCallbackFunctions {
+    let retain_sym = "__touchHLE_CFDictionary_retain";
+    let retain_hf: HostFunction =
+        &(_touchHLE_CFDictionary_retain as fn(&mut Environment, _, _) -> _);
+    let retain_gf = dyld.create_guest_function(mem, retain_sym, retain_hf);
+
+    let release_sym = "__touchHLE_CFDictionary_release";
+    let release_hf: HostFunction = &(_touchHLE_CFDictionary_release as fn(&mut Environment, _, _));
+    let release_gf = dyld.create_guest_function(mem, release_sym, release_hf);
+
+    let copy_desc_sym = "__touchHLE_CFDictionary_copyDescription";
+    let copy_desc_hf: HostFunction =
+        &(_touchHLE_CFDictionary_copyDescription as fn(&mut Environment, _) -> _);
+    let copy_desc_gf = dyld.create_guest_function(mem, copy_desc_sym, copy_desc_hf);
+
+    let equal_sym = "__touchHLE_CFDictionary_equal";
+    let equal_hf: HostFunction = &(_touchHLE_CFDictionary_equal as fn(&mut Environment, _, _) -> _);
+    let equal_gf = dyld.create_guest_function(mem, equal_sym, equal_hf);
+
+    let hash_sym = "__touchHLE_CFDictionary_hash";
+    let hash_hf: HostFunction = &(_touchHLE_CFDictionary_hash as fn(&mut Environment, _) -> _);
+    let hash_gf = dyld.create_guest_function(mem, hash_sym, hash_hf);
+
+    DefaultCallbackFunctions {
+        retain: retain_gf,
+        release: release_gf,
+        copy_desc: copy_desc_gf,
+        equal: equal_gf,
+        hash: hash_gf,
+    }
+}
+
+pub const CONSTANTS: ConstantExports = &[
+    (
+        "_kCFTypeDictionaryKeyCallBacks",
+        HostConstant::Custom(|mem, dyld| {
+            let common = create_default_callback_functions(mem, dyld);
+            let callbacks = CFDictionaryKeyCallBacks {
+                version: 0, // always 0
+                retain: common.retain,
+                release: common.release,
+                copy_desc: common.copy_desc,
+                equal: common.equal,
+                hash: common.hash,
+            };
+            mem.alloc_and_write(callbacks).cast_void().cast_const()
+        }),
+    ),
+    (
+        "_kCFTypeDictionaryValueCallBacks",
+        HostConstant::Custom(|mem, dyld| {
+            // All the functions here (except `hash` one)
+            // are the same as for `kCFTypeDictionaryKeyCallBacks`,
+            // but we still re-create guest functions for the sake
+            // of the (current) code simplicity
+            // TODO: create related guest functions only once, not twice
+            let common = create_default_callback_functions(mem, dyld);
+            let callbacks = CFDictionaryValueCallBacks {
+                version: 0, // always 0
+                retain: common.retain,
+                release: common.release,
+                copy_desc: common.copy_desc,
+                equal: common.equal,
+            };
+            mem.alloc_and_write(callbacks).cast_void().cast_const()
+        }),
+    ),
+];
 
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(CFDictionaryCreateMutable(_, _, _, _)),

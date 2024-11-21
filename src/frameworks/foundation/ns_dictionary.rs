@@ -95,22 +95,22 @@ impl DictionaryHostObject {
 // NSDictionary internals, but separation could be cleaner?
 #[repr(C, packed)]
 pub struct CFDictionaryKeyCallBacks {
-    version: CFIndex,         // version
-    retain: GuestFunction,    // const void *(*retain)(CFAllocatorRef, const void *value)
-    release: GuestFunction,   // void (*release)(CFAllocatorRef alloc, const void *val)
-    copy_desc: GuestFunction, // CFStringRef (*copy_desc)(const void *val)
-    equal: GuestFunction,     // Boolean (*equal)(const void *val1, const void *val2)
-    hash: GuestFunction,      // CFHashCode (*hash)(const void *val)
+    pub version: CFIndex,         // version
+    pub retain: GuestFunction,    // const void *(*retain)(CFAllocatorRef, const void *value)
+    pub release: GuestFunction,   // void (*release)(CFAllocatorRef alloc, const void *val)
+    pub copy_desc: GuestFunction, // CFStringRef (*copy_desc)(const void *val)
+    pub equal: GuestFunction,     // Boolean (*equal)(const void *val1, const void *val2)
+    pub hash: GuestFunction,      // CFHashCode (*hash)(const void *val)
 }
 unsafe impl SafeRead for CFDictionaryKeyCallBacks {}
 
 #[repr(C, packed)]
 pub struct CFDictionaryValueCallBacks {
-    version: CFIndex,         // version
-    retain: GuestFunction,    // const void *(*retain)(CFAllocatorRef, const void *value)
-    release: GuestFunction,   // void (*release)(CFAllocatorRef alloc, const void *val)
-    copy_desc: GuestFunction, // CFStringRef (*copy_desc)(const void *val)
-    equal: GuestFunction,     // Boolean (*equal)(const void *val1, const void *val2)
+    pub version: CFIndex,         // version
+    pub retain: GuestFunction,    // const void *(*retain)(CFAllocatorRef, const void *value)
+    pub release: GuestFunction,   // void (*release)(CFAllocatorRef alloc, const void *val)
+    pub copy_desc: GuestFunction, // CFStringRef (*copy_desc)(const void *val)
+    pub equal: GuestFunction,     // Boolean (*equal)(const void *val1, const void *val2)
 }
 unsafe impl SafeRead for CFDictionaryValueCallBacks {}
 
