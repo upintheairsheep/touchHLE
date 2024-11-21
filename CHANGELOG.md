@@ -33,6 +33,7 @@ Compatibility:
   - [Iron Man 2](https://appdb.touchhle.org/apps/451) (@ciciplusplus)
   - [Shrek Forever After](https://appdb.touchhle.org/apps/427) (@ciciplusplus)
   - [Spore Origins](https://appdb.touchhle.org/apps/302) (@ciciplusplus, @hikari-no-yume, @teromene)
+  - [Defender Chronicles](https://appdb.touchhle.org/apps/267) (@hujerhoe)
 - API support improvements:
   - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @LennyKappa, @hujerhoe)
   - UITextField now supports real text input with a keyboard. On Windows/macOS physical keyboard is used, on Android it's done via a system soft keyboard. (@ciciplusplus)
