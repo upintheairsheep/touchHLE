@@ -229,6 +229,12 @@ fn AudioOutputUnitStop(env: &mut Environment, ci: AudioUnit) -> OSStatus {
 }
 
 pub fn render_audio_unit(env: &mut Environment, audio_unit: AudioUnit) {
+    if env.bundle.bundle_identifier().starts_with("com.ea.simcity") {
+        // If enabled, we have some random crashes inside AURenderCallback ;(
+        log_dbg!("Applying game-specific hack for SimCity: skipping rendering of audio units");
+        return;
+    }
+
     let _context_manager = env.framework_state.audio_toolbox.make_al_context_current();
 
     let audio_session::State {
