@@ -105,3 +105,8 @@ com.ea.candcra.row: --landscape-left
 
 # Defender chronicles
 com.chillingo.defenderchronicles: --landscape-left
+
+# SimCity
+# (we neeed to force language to avoid a crash)
+com.ea.simcitybv: --preferred-languages=en
+com.ea.simcityinc: --preferred-languages=en
