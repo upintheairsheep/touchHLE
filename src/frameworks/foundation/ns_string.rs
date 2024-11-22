@@ -1268,6 +1268,14 @@ pub const CLASSES: ClassExports = objc_classes! {
         .unwrap_or(false)
 }
 
+- (id)dataUsingEncoding:(NSStringEncoding)encoding
+   allowLossyConversion:(bool)lossy {
+    if lossy {
+        log!("Warning: ignoring allow lossy conversion for '{}'", to_rust_string(env, this));
+    }
+    msg![env; this dataUsingEncoding:encoding]
+}
+
 - (id)dataUsingEncoding:(NSStringEncoding)encoding {
     assert!(encoding == NSUTF8StringEncoding || encoding == NSASCIIStringEncoding);
 
