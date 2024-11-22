@@ -170,6 +170,8 @@ int swscanf(const wchar_t *, const wchar_t *, ...);
 // <math.h>
 long int lrint(double);
 long int lrintf(float);
+double ldexp(double, int);
+float ldexpf(float, int);
 
 // `CFBase.h`
 
@@ -1953,6 +1955,50 @@ int test_lrint() {
   return 0;
 }
 
+int test_ldexp() {
+  struct {
+    double x;
+    int n;
+    double expected;
+  } test_cases[] = {
+      {0.0, 5, 0.0},  {-0.0, -3, -0.0}, {1.0, 0, 1.0},   {1.0, 1, 2.0},
+      {1.0, -1, 0.5}, {2.5, 3, 20.0},   {3.0, -2, 0.75},
+  };
+  int num_tests = sizeof(test_cases) / sizeof(test_cases[0]);
+  for (int i = 0; i < num_tests; i++) {
+    double x = test_cases[i].x;
+    int n = test_cases[i].n;
+    double expected = test_cases[i].expected;
+    double result = ldexp(x, n);
+
+    if (expected != result) {
+      return -(i + 1);
+    }
+  }
+
+  struct {
+    float x;
+    int n;
+    float expected;
+  } test_cases_f[] = {
+      {0.0f, 5, 0.0f},  {-0.0f, -3, -0.0f}, {1.0f, 0, 1.0f},   {1.0f, 1, 2.0f},
+      {1.0f, -1, 0.5f}, {2.5f, 3, 20.0f},   {3.0f, -2, 0.75f},
+  };
+  int num_tests_f = sizeof(test_cases_f) / sizeof(test_cases_f[0]);
+  for (int i = 0; i < num_tests_f; i++) {
+    float x = test_cases_f[i].x;
+    int n = test_cases_f[i].n;
+    float expected = test_cases_f[i].expected;
+    float result = ldexpf(x, n);
+
+    if (expected != result) {
+      return -(num_tests + i + 1);
+    }
+  }
+
+  return 0;
+}
+
 // clang-format off
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
@@ -1993,6 +2039,7 @@ struct {
     FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_PrimitiveTypes),
     FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_CFTypes),
     FUNC_DEF(test_lrint),
+    FUNC_DEF(test_ldexp),
 };
 // clang-format on
 

@@ -272,6 +272,22 @@ fn exp2f(env: &mut Environment, arg: f32) -> f32 {
 
     arg.exp2()
 }
+fn ldexp(env: &mut Environment, arg: f64, n: i32) -> f64 {
+    // TODO: handle errno properly
+    set_errno(env, 0);
+
+    assert!(!arg.is_infinite()); // TODO
+
+    arg * 2f64.powf(n as _)
+}
+fn ldexpf(env: &mut Environment, arg: f32, n: i32) -> f32 {
+    // TODO: handle errno properly
+    set_errno(env, 0);
+
+    assert!(!arg.is_infinite()); // TODO
+
+    arg * 2f32.powf(n as _)
+}
 
 // Power functions
 // TODO: implement the rest
@@ -439,6 +455,8 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(expm1f(_)),
     export_c_func!(exp2(_)),
     export_c_func!(exp2f(_)),
+    export_c_func!(ldexp(_, _)),
+    export_c_func!(ldexpf(_, _)),
     // Power functions
     export_c_func!(pow(_, _)),
     export_c_func!(powf(_, _)),
