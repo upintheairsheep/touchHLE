@@ -167,6 +167,10 @@ int scandir(const char *, struct dirent ***, int (*)(struct dirent *),
 // <wchar.h>
 int swscanf(const wchar_t *, const wchar_t *, ...);
 
+// <math.h>
+long int lrint(double);
+long int lrintf(float);
+
 // `CFBase.h`
 
 typedef unsigned char Boolean;
@@ -1853,6 +1857,102 @@ int test_CFMutableDictionary_CustomCallbacks_CFTypes() {
   return 0;
 }
 
+int test_lrint() {
+  struct {
+    double input;
+    long int expected;
+  } test_cases[] = {
+      {0.0, 0L},
+      {0.5, 0L},
+      {1.0, 1L},
+      {1.5, 2L},
+      {2.0, 2L},
+      {2.5, 2L},
+      {3.0, 3L},
+      {3.5, 4L},
+      {4.5, 4L},
+      {5.5, 6L},
+      {-0.0, 0L},
+      {-0.5, 0L},
+      {-1.0, -1L},
+      {-1.5, -2L},
+      {-2.0, -2L},
+      {-2.5, -2L},
+      {-3.0, -3L},
+      {-3.5, -4L},
+      {-4.5, -4L},
+      {-5.5, -6L},
+      {1.4999999999, 1L},
+      {1.5000000001, 2L},
+      {-1.4999999999, -1L},
+      {-1.5000000001, -2L},
+      // Around INT_MAX
+      {2147483647.0, 2147483647L},
+      {2147483646.5, 2147483646L},
+      {2147483647.4, 2147483647L},
+      // Around INT_MIN
+      {-2147483648.0, -2147483648L},
+      {-2147483648.5, -2147483648L},
+      {-2147483647.5, -2147483648L},
+  };
+  int num_tests = sizeof(test_cases) / sizeof(test_cases[0]);
+  for (int i = 0; i < num_tests; i++) {
+    double input = test_cases[i].input;
+    long int expected = test_cases[i].expected;
+    long int result = lrint(input);
+    if (result != expected) {
+      return -(i + 1);
+    }
+  }
+
+  struct {
+    float input;
+    long int expected;
+  } test_cases_f[] = {
+      {0.0f, 0L},
+      {0.5f, 0L},
+      {1.0f, 1L},
+      {1.5f, 2L},
+      {2.0f, 2L},
+      {2.5f, 2L},
+      {3.0f, 3L},
+      {3.5f, 4L},
+      {4.5f, 4L},
+      {5.5f, 6L},
+      {-0.0f, 0L},
+      {-0.5f, 0L},
+      {-1.0f, -1L},
+      {-1.5f, -2L},
+      {-2.0f, -2L},
+      {-2.5f, -2L},
+      {-3.0f, -3L},
+      {-3.5f, -4L},
+      {-4.5f, -4L},
+      {-5.5f, -6L},
+      {1.4999999f, 1L},
+      {1.5000001f, 2L},
+      {-1.4999999f, -1L},
+      {-1.5000001f, -2L},
+#ifdef DEFINE_ME_WHEN_BUILDING_ON_MACOS
+      // on macOS `long int` is 8 bytes
+      {2147483648.0f, 2147483648L},
+#else
+      {2147483648.0f, 2147483647L}
+#endif
+  };
+  int num_tests_f = sizeof(test_cases_f) / sizeof(test_cases_f[0]);
+  for (int i = 0; i < num_tests_f; i++) {
+    float input = test_cases_f[i].input;
+    long int expected = test_cases_f[i].expected;
+    long int result = lrintf(input);
+    if (result != expected) {
+      return -(num_tests + i + 1);
+    }
+  }
+
+  return 0;
+}
+
 // clang-format off
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
@@ -1892,6 +1992,7 @@ struct {
     FUNC_DEF(test_CFMutableDictionary_NullCallbacks),
     FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_PrimitiveTypes),
     FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_CFTypes),
+    FUNC_DEF(test_lrint),
 };
 // clang-format on
 
