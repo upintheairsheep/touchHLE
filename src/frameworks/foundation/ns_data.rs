@@ -176,6 +176,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     a == b
 }
 
+- (())getBytes:(MutPtr<u8>)buffer length:(NSUInteger)length {
+    let length = length.min(env.objc.borrow::<NSDataHostObject>(this).length);
+    let range = NSRange { location: 0, length };
+    msg![env; this getBytes:buffer range:range]
+}
+
 - (())getBytes:(MutPtr<u8>)buffer range:(NSRange)range {
     if range.length == 0 {
         return;
