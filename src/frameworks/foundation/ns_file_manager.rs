@@ -8,7 +8,7 @@
 use super::{ns_array, ns_string, NSUInteger};
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::fs::{GuestPath, GuestPathBuf};
-use crate::mem::MutPtr;
+use crate::mem::{ConstPtr, MutPtr};
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, release, ClassExports, HostObject,
 };
@@ -264,6 +264,13 @@ pub const CLASSES: ClassExports = objc_classes! {
         todo!();
     }
     true
+}
+
+- (ConstPtr<u8>)fileSystemRepresentationWithPath:(id)path { // NSString*
+    let length: NSUInteger = msg![env; path length];
+    assert!(length > 0);
+    // TODO: throw an exception if conversion fails
+    msg![env; path UTF8String]
 }
 
 @end

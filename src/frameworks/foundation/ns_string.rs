@@ -880,6 +880,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, new_string)
 }
 
+- (ConstPtr<u8>)fileSystemRepresentation {
+    let file_manager: id = msg_class![env; NSFileManager defaultManager];
+    // This behavior was confirmed on the iOS Simulator
+    msg![env; file_manager fileSystemRepresentationWithPath:this]
+}
+
 - (id)stringByAddingPercentEscapesUsingEncoding:(NSStringEncoding)encoding {
     assert_eq!(encoding, NSASCIIStringEncoding); // TODO: other encodings
     // TODO: implement escaping as per RFC 2396
