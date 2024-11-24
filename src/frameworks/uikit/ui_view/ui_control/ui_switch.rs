@@ -86,30 +86,7 @@ fn update(env: &mut Environment, this: id) {
     () = msg![env; this layoutSubviews];
 }
 
-pub const CLASSES: ClassExports = objc_classes! {
-
-(env, this, _cmd);
-
-@implementation UISwitch: UIControl
-
-+ (id)allocWithZone:(NSZonePtr)_zone {
-    let host_object = Box::<UISwitchHostObject>::default();
-    env.objc.alloc_object(this, host_object, &mut env.mem)
-}
-
-- (id)initWithFrame:(CGRect)frame {
-    log_dbg!("[(UISwitch*){:?} initWithFrame:{}] (frame.size is ignored)", this, frame);
-    // According to the docs,
-    // the size components of the frame rectangle are ignored.
-    let frame = CGRect {
-        origin: frame.origin,
-        size: CGSize {
-            width: TOTAL_WIDTH,
-            height: TOTAL_HEIGHT,
-        },
-    };
-    let this: id = msg_super![env; this initWithFrame:frame];
-
+fn init_common(env: &mut Environment, this: id) -> id {
     let size: CGFloat = 17.0;
     let font: id = msg_class![env; UIFont boldSystemFontOfSize:size];
 
@@ -162,7 +139,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg![env; this addSubview:thumb];
     update(env, this);
 
-    let selector = env.objc.lookup_selector("_touchHLE_flipAction:forEvent:").unwrap();
+    let selector = env
+        .objc
+        .lookup_selector("_touchHLE_flipAction:forEvent:")
+        .unwrap();
     () = msg![env; this addTarget:this
                            action:selector
                  forControlEvents:UIControlEventTouchUpInside];
@@ -170,8 +150,39 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
-- (id)initWithCoder:(id)_coder {
-    todo!()
+pub const CLASSES: ClassExports = objc_classes! {
+
+(env, this, _cmd);
+
+@implementation UISwitch: UIControl
+
++ (id)allocWithZone:(NSZonePtr)_zone {
+    let host_object = Box::<UISwitchHostObject>::default();
+    env.objc.alloc_object(this, host_object, &mut env.mem)
+}
+
+- (id)initWithFrame:(CGRect)frame {
+    log_dbg!("[(UISwitch*){:?} initWithFrame:{}] (frame.size is ignored)", this, frame);
+    // According to the docs,
+    // the size components of the frame rectangle are ignored.
+    let frame = CGRect {
+        origin: frame.origin,
+        size: CGSize {
+            width: TOTAL_WIDTH,
+            height: TOTAL_HEIGHT,
+        },
+    };
+    let this: id = msg_super![env; this initWithFrame:frame];
+
+    init_common(env, this)
+}
+
+- (id)initWithCoder:(id)coder {
+    let this: id = msg_super![env; this initWithCoder:coder];
+
+    // TODO: actual decoding of properties
+
+    init_common(env, this)
 }
 
 - (())layoutSubviews {
