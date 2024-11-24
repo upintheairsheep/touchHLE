@@ -5,9 +5,10 @@
  */
 //! `UIWindow`.
 
+use super::UIViewHostObject;
 use crate::dyld::{ConstantExports, HostConstant};
 use crate::frameworks::core_graphics::CGRect;
-use crate::objc::{id, msg, msg_class, msg_super, objc_classes, ClassExports};
+use crate::objc::{id, msg, msg_class, msg_super, nil, objc_classes, ClassExports};
 
 #[derive(Default)]
 pub struct State {
@@ -114,6 +115,26 @@ pub const CLASSES: ClassExports = objc_classes! {
 // "UIWindow returns the application object."
 - (id)nextResponder {
     msg_class![env; UIApplication sharedApplication]
+}
+
+- (())addSubview:(id)view {
+    log_dbg!("[(UIWindow*){:?} addSubview:{:?}] => ()", this, view);
+
+    if view == nil && env.objc.borrow::<UIViewHostObject>(view).view_controller == nil {
+        () = msg_super![env; this addSubview:view];
+        return;
+    }
+
+    // Below we treat a special case of adding view controller's view
+    // to a window, in order to generate display related notifications
+
+    // TODO: case of existing view hidden by another view (see docs)
+    assert!(!env.objc.borrow::<UIViewHostObject>(this).subviews.contains(&view));
+
+    let vc = env.objc.borrow::<UIViewHostObject>(view).view_controller;
+    () = msg![env; vc viewWillAppear:false];
+    () = msg_super![env; this addSubview:view];
+    () = msg![env; vc viewDidAppear:false];
 }
 
 @end
