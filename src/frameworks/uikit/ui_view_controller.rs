@@ -8,6 +8,7 @@
 //! Resources:
 //! - [View Controller Programming Guide for iOS (Legacy)](https://developer.apple.com/library/archive/documentation/WindowsViews/Conceptual/ViewControllerPGforiOSLegacy/BasicViewControllers/BasicViewControllers.html)
 
+use crate::frameworks::core_graphics::CGRect;
 use crate::frameworks::foundation::ns_string::get_static_str;
 use crate::frameworks::uikit::ui_view::set_view_controller;
 use crate::objc::{
@@ -52,8 +53,13 @@ pub const CLASSES: ClassExports = objc_classes! {
     // TODO: Check if the UIViewController has an associated nib file and load
     // the view from there instead if it does
     let view: id = msg_class![env; UIView alloc];
-    let view: id = msg![env; view init];
-    () = msg![env; this setView: view];
+    // Docs are saying that "an empty UIView" is created,
+    // but testing reveals that frame matches the screen one
+    // (at least on the simulator)
+    let screen: id = msg_class![env; UIScreen mainScreen];
+    let app_frame: CGRect = msg![env; screen applicationFrame];
+    let view: id = msg![env; view initWithFrame:app_frame];
+    () = msg![env; this setView:view];
 }
 - (())setView:(id)new_view { // UIView*
     let host_obj = env.objc.borrow_mut::<UIViewControllerHostObject>(this);
