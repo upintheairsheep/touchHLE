@@ -4,6 +4,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 //! `UIViewController`.
+//!
+//! Resources:
+//! - [View Controller Programming Guide for iOS (Legacy)](https://developer.apple.com/library/archive/documentation/WindowsViews/Conceptual/ViewControllerPGforiOSLegacy/BasicViewControllers/BasicViewControllers.html)
 
 use crate::frameworks::foundation::ns_string::get_static_str;
 use crate::frameworks::uikit::ui_view::set_view_controller;
@@ -69,12 +72,17 @@ pub const CLASSES: ClassExports = objc_classes! {
     if view == nil {
         () = msg![env; this loadView];
         let view = env.objc.borrow_mut::<UIViewControllerHostObject>(this).view;
+        () = msg![env; this viewDidLoad];
         view
     } else {
         view
     }
 }
 
+// Usually overridden by the application
+- (())viewDidLoad {
+    log_dbg!("[(UIViewController*){:?} viewDidLoad]", this);
+}
 - (())setEditing:(bool)editing {
     log!("TODO: [(UIViewController*){:?} setEditing:{}]", this, editing); // TODO
 }
