@@ -35,7 +35,7 @@ Compatibility:
   - [Spore Origins](https://appdb.touchhle.org/apps/302) (@ciciplusplus, @hikari-no-yume, @teromene)
   - [Defender Chronicles](https://appdb.touchhle.org/apps/267) (@hujerhoe)
 - API support improvements:
-  - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @LennyKappa, @hujerhoe)
+  - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @LennyKappa, @hujerhoe, @acieslewicz)
   - UITextField now supports real text input with a keyboard. On Windows/macOS physical keyboard is used, on Android it's done via a system soft keyboard. (@ciciplusplus)
   - UIScrollView and UITextView partial implementations. (@Skryptonyte, @ciciplusplus)
 
