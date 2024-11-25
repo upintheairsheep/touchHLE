@@ -186,6 +186,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, object)
 }
 
+- (bool)containsValueForKey:(id)key { // NSString*
+    assert!(key != nil);
+    get_value_to_decode_for_key(env, this, key).is_some()
+}
+
 // TODO: add more decode methods
 
 // These come from a category in UIKit's UIGeometry.h

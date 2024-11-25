@@ -9,6 +9,8 @@ use super::ui_graphics::UIGraphicsGetCurrentContext;
 use crate::frameworks::core_graphics::cg_color::{CGColorRef, CGColorRelease, CGColorRetain};
 use crate::frameworks::core_graphics::cg_context::CGContextSetRGBFillColor;
 use crate::frameworks::core_graphics::{cg_color, CGFloat};
+use crate::frameworks::foundation::ns_string::get_static_str;
+use crate::frameworks::foundation::NSInteger;
 use crate::mem::MutPtr;
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, ClassExports, HostObject, NSZonePtr, ObjC,
@@ -130,6 +132,53 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+// NSCoding implementation
+- (id)initWithCoder:(id)coder {
+    let key_ns_string = get_static_str(env, "UIAlpha");
+    let a: CGFloat = msg![env; coder decodeFloatForKey:key_ns_string];
+
+    let key_ns_string = get_static_str(env, "UIColorComponentCount");
+    let count: NSInteger = msg![env; coder decodeIntegerForKey:key_ns_string];
+
+    match count {
+        4 => {
+            let key_ns_string = get_static_str(env, "UIRed");
+
+            // Both RGBA and HSBA colors have 4 components.
+            // We assume presence of the red component as the indication of RGBA
+            // TODO: support HSBA decoding too
+            assert!(msg![env; coder containsValueForKey:key_ns_string]);
+
+            let r: CGFloat = msg![env; coder decodeFloatForKey:key_ns_string];
+
+            let key_ns_string = get_static_str(env, "UIGreen");
+            let g: CGFloat = msg![env; coder decodeFloatForKey:key_ns_string];
+
+            let key_ns_string = get_static_str(env, "UIBlue");
+            let b: CGFloat = msg![env; coder decodeFloatForKey:key_ns_string];
+
+            log_dbg!(
+                "[(UIColor*){:?} initWithCoder:{:?}] => count {}, r {}, g {}, b {}, a {}",
+                this, coder, count, r, g, b, a
+            );
+
+            msg![env; this initWithRed:r green:g blue:b alpha:a]
+        }
+        2 => {
+            let key_ns_string = get_static_str(env, "UIWhite");
+            let w: CGFloat = msg![env; coder decodeFloatForKey:key_ns_string];
+
+            log_dbg!(
+                "[(UIColor*){:?} initWithCoder:{:?}] => count {}, w {}, a {}",
+                this, coder, count, w, a
+            );
+
+            msg![env; this initWithWhite:w alpha:a]
+        }
+        _ => unimplemented!()
+    }
+}
+
 - (bool)getRed:(MutPtr<CGFloat>)r
          green:(MutPtr<CGFloat>)g
           blue:(MutPtr<CGFloat>)b
@@ -166,6 +215,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     env.objc.dealloc_object(this, &mut env.mem)
 }
 
+@end
+
+// Undocumented classes used in NIBs
+@implementation UICGColor: UIColor
+@end
+@implementation UIDeviceRGBColor: UIColor
 @end
 
 // Special subclass for standard colors with a static lifetime.

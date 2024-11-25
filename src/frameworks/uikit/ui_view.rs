@@ -153,17 +153,21 @@ pub const CLASSES: ClassExports = objc_classes! {
     let key_ns_string = get_static_str(env, "UIOpaque");
     let opaque: bool = msg![env; coder decodeBoolForKey:key_ns_string];
 
+    let key_ns_string = get_static_str(env, "UIBackgroundColor");
+    let bg_color: id = msg![env; coder decodeObjectForKey:key_ns_string];
+
     let key_ns_string = get_static_str(env, "UISubviews");
     let subviews: id = msg![env; coder decodeObjectForKey:key_ns_string];
     let subview_count: NSUInteger = msg![env; subviews count];
 
     log_dbg!(
-        "[(UIView*){:?} initWithCoder:{:?}] => bounds {}, center {}, hidden {}, opaque {}, {} subviews",
+        "[(UIView*){:?} initWithCoder:{:?}] => bounds {}, center {}, hidden {}, bg color {:?}, opaque {}, {} subviews",
         this,
         coder,
         bounds,
         center,
         hidden,
+        bg_color,
         opaque,
         subview_count,
     );
@@ -172,6 +176,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg![env; this setCenter:center];
     () = msg![env; this setHidden:hidden];
     () = msg![env; this setOpaque:opaque];
+    () = msg![env; this setBackgroundColor:bg_color];
 
     for i in 0..subview_count {
         let subview: id = msg![env; subviews objectAtIndex:i];
