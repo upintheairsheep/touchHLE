@@ -128,8 +128,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     // Below we treat a special case of adding view controller's view
     // to a window, in order to generate display related notifications
 
-    // TODO: case of existing view hidden by another view (see docs)
-    assert!(!env.objc.borrow::<UIViewHostObject>(this).subviews.contains(&view));
+    if env.objc.borrow::<UIViewHostObject>(this).subviews.contains(&view) {
+        // For the case of existing view hidden by another view,
+        // we need to delay a below sequence up until obstructions are removed
+        log!("TODO: case of existing view hidden by another view for sending view[Will,Did]Appear");
+    }
 
     let vc = env.objc.borrow::<UIViewHostObject>(view).view_controller;
     () = msg![env; vc viewWillAppear:false];
