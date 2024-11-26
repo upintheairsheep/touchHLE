@@ -8,6 +8,7 @@
 use crate::environment::Environment;
 use crate::frameworks::core_graphics::{CGFloat, CGPoint, CGRect, CGSize};
 use crate::frameworks::foundation::ns_string;
+use crate::frameworks::foundation::ns_string::get_static_str;
 use crate::frameworks::uikit::ui_font::UITextAlignmentCenter;
 use crate::frameworks::uikit::ui_view::ui_control::{
     send_actions, UIControlEventTouchUpInside, UIControlEventValueChanged,
@@ -180,9 +181,18 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)initWithCoder:(id)coder {
     let this: id = msg_super![env; this initWithCoder:coder];
 
-    // TODO: actual decoding of properties
+    let this = init_common(env, this);
 
-    init_common(env, this)
+    let key_ns_string = get_static_str(env, "UISwitchEnabled");
+    let enabled: bool = msg![env; coder decodeBoolForKey:key_ns_string];
+
+    let key_ns_string = get_static_str(env, "UISwitchOn");
+    let is_on: bool = msg![env; coder decodeBoolForKey:key_ns_string];
+
+    () = msg![env; this setEnabled:enabled];
+    () = msg![env; this setOn:is_on animated:false];
+
+    this
 }
 
 - (())layoutSubviews {
