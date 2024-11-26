@@ -149,6 +149,7 @@ pub const UIKeyboardWillShowNotification: &str = "UIKeyboardWillShowNotification
 pub const UIKeyboardDidShowNotification: &str = "UIKeyboardDidShowNotification";
 pub const UIKeyboardWillHideNotification: &str = "UIKeyboardWillHideNotification";
 pub const UIKeyboardDidHideNotification: &str = "UIKeyboardDidHideNotification";
+pub const UIKeyboardBoundsUserInfoKey: &str = "UIKeyboardBoundsUserInfoKey";
 
 pub const CONSTANTS: ConstantExports = &[
     (
@@ -166,5 +167,9 @@ pub const CONSTANTS: ConstantExports = &[
     (
         "_UIKeyboardDidHideNotification",
         HostConstant::NSString(UIKeyboardDidHideNotification),
+    ),
+    (
+        "_UIKeyboardBoundsUserInfoKey",
+        HostConstant::NSString(UIKeyboardBoundsUserInfoKey),
     ),
 ];
