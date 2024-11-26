@@ -299,14 +299,16 @@ pub const CLASSES: ClassExports = objc_classes! {
     update(env, this);
 }
 
+- (bool)isOn {
+     env.objc.borrow::<UISwitchHostObject>(this).is_on
+}
+- (())setOn:(bool)on {
+    msg![env; this setOn:on animated:false]
+}
 - (())setOn:(bool)on animated:(bool)_animated {
     // TODO: support animation
     env.objc.borrow_mut::<UISwitchHostObject>(this).is_on = on;
     update(env, this);
-}
-
-- (bool)isOn {
-     env.objc.borrow::<UISwitchHostObject>(this).is_on
 }
 
 - (id)hitTest:(CGPoint)point
