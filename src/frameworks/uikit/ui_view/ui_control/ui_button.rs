@@ -217,6 +217,9 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg_super![env; this setHighlighted:highlighted];
     update(env, this);
 }
+- (())setShowsTouchWhenHighlighted:(bool)shows {
+    log!("TODO: [(UIButton*){:?} setShowsTouchWhenHighlighted:{}]", this, shows);
+}
 - (())setFont:(id)font { // UIFont*
     let label = env.objc.borrow_mut::<UIButtonHostObject>(this).title_label;
     () = msg![env; label setFont:font];
