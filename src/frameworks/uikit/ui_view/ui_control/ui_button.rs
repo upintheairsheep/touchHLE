@@ -7,11 +7,12 @@
 
 use super::{UIControlState, UIControlStateNormal};
 use crate::frameworks::core_graphics::{CGPoint, CGRect};
+use crate::frameworks::foundation::ns_string::{from_rust_string, get_static_str, to_rust_string};
 use crate::frameworks::foundation::NSInteger;
 use crate::frameworks::uikit::ui_font::UITextAlignmentCenter;
 use crate::objc::{
     autorelease, id, impl_HostObject_with_superclass, msg, msg_class, msg_super, nil, objc_classes,
-    release, retain, ClassExports, NSZonePtr,
+    release, retain, ClassExports, HostObject, NSZonePtr,
 };
 use crate::Environment;
 use std::collections::HashMap;
@@ -27,6 +28,17 @@ const UIButtonTypeInfoLight: UIButtonType = 3;
 const UIButtonTypeInfoDark: UIButtonType = 4;
 #[allow(dead_code)]
 const UIButtonTypeContactAdd: UIButtonType = 5;
+
+// Host object for an intermediate object
+// used for decoding of UIButton from a NIB
+#[derive(Default)]
+struct UIButtonContentHostObject {
+    /// `NSString*`
+    title: id,
+    /// `UIColor*`
+    title_color: id,
+}
+impl HostObject for UIButtonContentHostObject {}
 
 pub struct UIButtonHostObject {
     superclass: super::UIControlHostObject,
@@ -316,6 +328,71 @@ pub const CLASSES: ClassExports = objc_classes! {
     } else {
         nil
     }
+}
+
+@end
+
+// Undocumented classes used by NIBs
+
+@implementation UIRoundedRectButton: UIButton
+// TODO: rendering of round corners
+@end
+
+@implementation UIButtonContent: NSObject
+
++ (id)alloc {
+    let host_object = Box::<UIButtonContentHostObject>::default();
+    env.objc.alloc_object(this, host_object, &mut env.mem)
+}
+
+// NSCoding implementation
+- (id)initWithCoder:(id)coder {
+    let title_key = get_static_str(env, "UITitle");
+    let title: id = msg![env; coder decodeObjectForKey:title_key];
+    log_dbg!("UIButtonContent: UITitle -> {}", to_rust_string(env, title));
+
+    let title_color_key = get_static_str(env, "UITitleColor");
+    let title_color: id = msg![env; coder decodeObjectForKey:title_color_key];
+    log_dbg!("UIButtonContent: UITitleColor -> {:?}", title_color);
+
+    // TODO: decode other properties
+
+    retain(env, title);
+    retain(env, title_color);
+    let host_obj = env.objc.borrow_mut::<UIButtonContentHostObject>(this);
+    host_obj.title = title;
+    host_obj.title_color = title_color;
+
+    this
+}
+
+- (id)title {
+    env.objc.borrow::<UIButtonContentHostObject>(this).title
+}
+- (id)titleColor {
+    env.objc.borrow::<UIButtonContentHostObject>(this).title_color
+}
+
+- (id)description {
+    let title = env.objc.borrow::<UIButtonContentHostObject>(this).title;
+    let title_color = env.objc.borrow::<UIButtonContentHostObject>(this).title_color;
+    let desc_str = format!(
+        "UIButtonContent({:?}, title {:?}, title_color {:?})",
+        this, title, title_color
+    );
+    let desc = from_rust_string(env, desc_str);
+    autorelease(env, desc)
+}
+
+- (())dealloc {
+    let &UIButtonContentHostObject {
+        title,
+        title_color
+    } = env.objc.borrow(this);
+    release(env, title);
+    release(env, title_color);
+
+    env.objc.dealloc_object(this, &mut env.mem)
 }
 
 @end
