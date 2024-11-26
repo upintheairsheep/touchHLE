@@ -7,6 +7,7 @@
 
 use crate::frameworks::core_graphics::cg_context::CGContextSetRGBFillColor;
 use crate::frameworks::core_graphics::{CGFloat, CGPoint, CGRect, CGSize};
+use crate::frameworks::foundation::ns_string::get_static_str;
 use crate::frameworks::foundation::NSInteger;
 use crate::frameworks::uikit::ui_color;
 use crate::frameworks::uikit::ui_font::{
@@ -58,12 +59,31 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)initWithCoder:(id)coder {
-    let this: id = msg_super![env; this initWithCoder: coder];
-    // Use default values by calling the setters
-    // TODO: Decode the actual property values from the coder
+    let this: id = msg_super![env; this initWithCoder:coder];
+
+    // TODO: Decode other property values from the coder
     () = msg![env; this setFont:nil];
-    () = msg![env; this setTextColor:nil];
-    () = msg![env; this setBackgroundColor:nil];
+
+    let key_ns_string = get_static_str(env, "UIText");
+    let text: id = msg![env; coder decodeObjectForKey:key_ns_string];
+    () = msg![env; this setText:text];
+
+    let key_ns_string = get_static_str(env, "UITextColor");
+    let text_color: id = msg![env; coder decodeObjectForKey:key_ns_string];
+    () = msg![env; this setTextColor:text_color];
+
+    let key_ns_string = get_static_str(env, "UIBackgroundColor");
+    let bg_color: id = msg![env; coder decodeObjectForKey:key_ns_string];
+    let bg_color = if bg_color == nil {
+        // Setting nil to the background color will fall back
+        // to a white color, but testing with BoD screens,
+        // it seems to use the transparent one
+        msg_class![env; UIColor clearColor]
+    } else {
+        bg_color
+    };
+    () = msg![env; this setBackgroundColor:bg_color];
+
     // Built-in views don't have user-controlled opaqueness.
     () = msg_super![env; this setOpaque:false];
     this
