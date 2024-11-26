@@ -289,6 +289,22 @@ fn unarchive_key(env: &mut Environment, unarchiver: id, key: Uid) -> id {
             let s = s.to_string();
             from_rust_string(env, s)
         }
+        Value::Integer(int) => {
+            #[allow(clippy::clone_on_copy)]
+            let int = int.clone();
+            // Similar logic to deserialize_plist()
+            let number: id = msg_class![env; NSNumber alloc];
+            // TODO: is this the correct order of preference? does it matter?
+            if let Some(int64) = int.as_signed() {
+                let longlong: i64 = int64;
+                msg![env; number initWithLongLong:longlong]
+            } else if let Some(uint64) = int.as_unsigned() {
+                let ulonglong: u64 = uint64;
+                msg![env; number initWithUnsignedLongLong:ulonglong]
+            } else {
+                unreachable!(); // according to plist crate docs
+            }
+        }
         _ => unimplemented!("Unarchive: {:#?}", item),
     };
 
@@ -301,17 +317,7 @@ fn unarchive_key(env: &mut Environment, unarchiver: id, key: Uid) -> id {
 ///
 /// The objects are to be considered retained by the `Vec`.
 pub fn decode_current_array(env: &mut Environment, unarchiver: id) -> Vec<id> {
-    let keys: Vec<Uid> = {
-        let host_obj = borrow_host_obj(env, unarchiver);
-        let objects = host_obj.plist["$objects"].as_array().unwrap();
-        let item = &objects[host_obj.current_key.unwrap().get() as usize];
-        let keys = item.as_dictionary().unwrap()["NS.objects"]
-            .as_array()
-            .unwrap();
-        keys.iter()
-            .map(|value| value.as_uid().copied().unwrap())
-            .collect()
-    };
+    let keys = keys_for_key(env, unarchiver, "NS.objects");
 
     keys.into_iter()
         .map(|key| {
@@ -319,5 +325,36 @@ pub fn decode_current_array(env: &mut Environment, unarchiver: id) -> Vec<id> {
             // object is retained by the Vec
             retain(env, new_object)
         })
+        .collect()
+}
+
+/// Shortcut for use by `[_touchHLE_NSMutableDictionary initWithCoder:]`.
+///
+/// Similar to `decode_current_array`, but for dictionaries.
+/// The keys and objects are not retained!
+pub fn decode_current_dict(env: &mut Environment, unarchiver: id) -> Vec<(id, id)> {
+    let keys = keys_for_key(env, unarchiver, "NS.keys");
+    let vals = keys_for_key(env, unarchiver, "NS.objects");
+    log_dbg!("decode_current_dict: keys {:?}, vals {:?}", keys, vals);
+
+    let keys: Vec<id> = keys
+        .into_iter()
+        .map(|key| unarchive_key(env, unarchiver, key))
+        .collect();
+    let vals: Vec<id> = vals
+        .into_iter()
+        .map(|val| unarchive_key(env, unarchiver, val))
+        .collect();
+
+    keys.into_iter().zip(vals).collect()
+}
+
+fn keys_for_key(env: &mut Environment, unarchiver: id, key: &str) -> Vec<Uid> {
+    let host_obj = borrow_host_obj(env, unarchiver);
+    let objects = host_obj.plist["$objects"].as_array().unwrap();
+    let item = &objects[host_obj.current_key.unwrap().get() as usize];
+    let keys = item.as_dictionary().unwrap()[key].as_array().unwrap();
+    keys.iter()
+        .map(|value| value.as_uid().copied().unwrap())
         .collect()
 }

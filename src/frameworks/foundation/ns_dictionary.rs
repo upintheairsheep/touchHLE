@@ -10,7 +10,7 @@ use super::ns_property_list_serialization::{
     deserialize_plist_from_file, NSPropertyListBinaryFormat_v1_0,
 };
 use super::ns_string::{from_rust_string, to_rust_string};
-use super::{ns_string, ns_url, NSUInteger};
+use super::{ns_keyed_unarchiver, ns_string, ns_url, NSUInteger};
 use crate::abi::{CallFromHost, GuestFunction, VaList};
 use crate::frameworks::core_foundation::{CFHashCode, CFIndex};
 use crate::fs::GuestPath;
@@ -498,6 +498,25 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)initWithCapacity:(NSUInteger)_capacity {
     // TODO: capacity
     msg![env; this init]
+}
+
+// NSCoding implementation
+- (id)initWithCoder:(id)coder {
+    // It seems that every NSDictionary item in an NSKeyedArchiver plist
+    // looks like:
+    // {
+    //   "$class" => (uid of NSArray class goes here),
+    //   "NS.keys" => [
+    //     // keys here
+    //   ]
+    //   "NS.objects" => [
+    //     // objects here
+    //   ]
+    // }
+    release(env, this);
+    // FIXME: What if it's not an NSKeyedUnarchiver?
+    let tuples = ns_keyed_unarchiver::decode_current_dict(env, coder);
+    dict_from_keys_and_objects(env, &tuples)
 }
 
 // TODO: enumeration, more init methods, etc
