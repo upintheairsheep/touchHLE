@@ -18,6 +18,8 @@ use crate::objc::{
 };
 use crate::Environment;
 
+pub mod ui_navigation_controller;
+
 #[derive(Default)]
 struct UIViewControllerHostObject {
     /// The root view.
@@ -164,6 +166,9 @@ pub const CLASSES: ClassExports = objc_classes! {
     log_dbg!("[(UIViewController*){:?} viewDidDisappear:{}]", this, animated);
 }
 
+- (())setTitle:(id)title { // NSString *
+    log!("TODO: [(UIViewController*){:?} setTitle:{}]", this, to_rust_string(env, title)); // TODO
+}
 - (())setEditing:(bool)editing {
     log!("TODO: [(UIViewController*){:?} setEditing:{}]", this, editing); // TODO
 }
