@@ -25,7 +25,7 @@ use crate::Environment;
 
 type UIKeyboardAppearance = NSInteger;
 type UIKeyboardType = NSInteger;
-type UIReturnKeyType = NSInteger;
+pub type UIReturnKeyType = NSInteger;
 type UITextAutocapitalizationType = NSInteger;
 type UITextAutocorrectionType = NSInteger;
 

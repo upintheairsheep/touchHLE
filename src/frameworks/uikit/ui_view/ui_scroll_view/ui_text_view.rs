@@ -18,6 +18,7 @@ use crate::objc::{
     retain, ClassExports, NSZonePtr,
 };
 use crate::Environment;
+use crate::frameworks::uikit::ui_view::ui_control::ui_text_field::UIReturnKeyType;
 
 pub struct UITextViewHostObject {
     superclass: super::UIScrollViewHostObject,
@@ -166,6 +167,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 - (())setEditable:(bool)editable {
     env.objc.borrow_mut::<UITextViewHostObject>(this).editable = editable;
+}
+
+- (())setReturnKeyType:(UIReturnKeyType)type_ {
+    log!("TODO: setReturnKeyType:{}", type_);
 }
 
 - (())drawRect:(CGRect)_rect {
