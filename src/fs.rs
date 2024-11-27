@@ -784,30 +784,43 @@ impl Fs {
         }
     }
 
-    pub fn rename<P: AsRef<GuestPath>>(&self, from: P, to: P) -> Result<(), ()> {
+    pub fn rename<P: AsRef<GuestPath>>(&mut self, from: P, to: P) -> Result<(), ()> {
         let from_node = self.lookup_node(from.as_ref()).ok_or(())?;
         match from_node {
             FsNode::File {
                 location: from_location,
-                ..
-            } => match from_location {
-                FileLocation::Path(from_host_path) => {
-                    let to_node = self.lookup_node(to.as_ref()).ok_or(())?;
-                    match to_node {
-                        FsNode::File {
-                            location: to_location,
-                            ..
-                        } => match to_location {
-                            FileLocation::Path(to_host_path) => {
-                                fs::rename(from_host_path, to_host_path).map_err(|_| ())
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => unimplemented!(),
-                    }
+                writeable: from_writeable,
+            } => {
+                let FileLocation::Path(from_host_path) = from_location else {
+                    // TODO: return EISDIR
+                    return Err(());
+                };
+                assert!(from_writeable); // TODO: return errno
+                let to_node = self.lookup_node(to.as_ref()).ok_or(())?;
+                let FsNode::File {
+                    location: to_location,
+                    writeable: to_writeable,
+                } = to_node
+                else {
+                    // TODO: return EISDIR
+                    return Err(());
+                };
+                let FileLocation::Path(to_host_path) = to_location else {
+                    // TODO: return EACCES
+                    return Err(());
+                };
+                assert!(to_writeable); // TODO: return errno
+                let res = fs::rename(from_host_path, to_host_path);
+                if res.is_ok() {
+                    // Remove reference to the old from node
+                    let (parent_from, component) = self.lookup_parent_node(from.as_ref()).unwrap();
+                    let FsNode::Directory { children, .. } = parent_from else {
+                        panic!()
+                    };
+                    children.remove(&component).unwrap();
                 }
-                _ => unreachable!(),
-            },
+                res.map_err(|_| ())
+            }
             _ => unimplemented!(),
         }
     }
