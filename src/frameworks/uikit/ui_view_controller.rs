@@ -93,7 +93,13 @@ pub const CLASSES: ClassExports = objc_classes! {
     log_dbg!("[(UIViewController*){:?} viewWillAppear:{}]", this, animated);
 }
 - (())viewDidAppear:(bool)animated {
-    log_dbg!("[(UIViewController*){:?} viewDidAppear{}]", this, animated);
+    log_dbg!("[(UIViewController*){:?} viewDidAppear:{}]", this, animated);
+}
+- (())viewWillDisappear:(bool)animated {
+    log_dbg!("[(UIViewController*){:?} viewWillDisappear:{}]", this, animated);
+}
+- (())viewDidDisappear:(bool)animated {
+    log_dbg!("[(UIViewController*){:?} viewDidDisappear:{}]", this, animated);
 }
 
 - (())setEditing:(bool)editing {
