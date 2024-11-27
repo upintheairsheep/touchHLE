@@ -9,6 +9,7 @@
 //! - Apple's [Preferences and Settings Programming Guide](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/UserDefaults/AboutPreferenceDomains/AboutPreferenceDomains.html).
 
 use super::{ns_string, NSInteger};
+use crate::frameworks::foundation::ns_string::to_rust_string;
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, release, Class, ClassExports, HostObject,
     NSZonePtr,
@@ -202,16 +203,18 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)stringForKey:(id)key {
+    log_dbg!("NSUserDefaults stringForKey:{}", to_rust_string(env, key));
     let val: id = msg![env; this objectForKey:key];
     if val == nil {
         return nil;
     }
+    let val_class: Class = msg![env; val class];
     let ns_string_class = env.objc.get_known_class("NSString", &mut env.mem);
-    if env.objc.class_is_subclass_of(val, ns_string_class) {
+    if env.objc.class_is_subclass_of(val_class, ns_string_class) {
         return val;
     }
     let ns_number_class = env.objc.get_known_class("NSNumber", &mut env.mem);
-    if env.objc.class_is_subclass_of(val, ns_number_class) {
+    if env.objc.class_is_subclass_of(val_class, ns_number_class) {
         todo!();
     }
     nil
