@@ -84,6 +84,15 @@ pub const CLASSES: ClassExports = objc_classes! {
     msg![env; now addTimeInterval:secs]
 }
 
++ (id)dateWithTimeIntervalSince1970:(NSTimeInterval)secs {
+    let time_interval = -(SECS_FROM_UNIX_TO_APPLE_EPOCHS as f64) + secs;
+    let host_object = Box::new(NSDateHostObject {
+        time_interval
+    });
+    let new = env.objc.alloc_object(this, host_object, &mut env.mem);
+    autorelease(env, new)
+}
+
 - (id)init {
     // "Date objects are immutable, representing an invariant time interval
     // relative to an absolute reference date (00:00:00 UTC on 1 January 2001)."
