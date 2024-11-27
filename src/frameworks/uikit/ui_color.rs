@@ -215,6 +215,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     env.objc.dealloc_object(this, &mut env.mem)
 }
 
+- (id)colorWithAlphaComponent:(CGFloat)a {
+    let a = a.clamp(0.0, 1.0);
+    let (r, g, b, _) = get_rgba(&env.objc, this);
+    msg_class![env; UIColor colorWithRed:r green:g blue:b alpha:a]
+}
+
 @end
 
 // Undocumented classes used in NIBs
