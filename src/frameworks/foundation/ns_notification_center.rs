@@ -101,14 +101,21 @@ pub const CLASSES: ClassExports = objc_classes! {
     });
 }
 
+- (())removeObserver:(id)observer {
+    msg![env; this removeObserver:observer name:nil object:nil]
+}
+
 - (())removeObserver:(id)observer
                 name:(NSNotificationName)name
               object:(id)object {
     assert!(observer != nil); // TODO
 
-    // TODO: handle case where name is nil
-    // Usually a static string, so no real copy will happen
-    let name = ns_string::to_rust_string(env, name);
+    let name = if name == nil {
+        None
+    } else {
+        // Usually a static string, so no real copy will happen
+        Some(ns_string::to_rust_string(env, name))
+    };
 
     log_dbg!(
         "[(NSNotificationCenter*){:?} removeObserver:{:?} name:{:?} object:{:?}",
@@ -118,23 +125,21 @@ pub const CLASSES: ClassExports = objc_classes! {
         object,
     );
 
-    let host_obj = env.objc.borrow_mut::<NSNotificationCenterHostObject>(this);
-    let Some(observers) = host_obj.observers.get_mut(&name) else {
-        return;
-    };
-
     // TODO: is this the correct behaviour, can an observer be registered
     // several times?
     let mut removed_observers = Vec::new();
 
-    let mut i = 0;
-    while i < observers.len() {
-        if observers[i].observer == observer && (object == nil || object == observers[i].object) {
-            removed_observers.push(observers.swap_remove(i));
-        } else {
-            i += 1;
+    let host_obj = env.objc.borrow_mut::<NSNotificationCenterHostObject>(this);
+    if let Some(ref name) = name {
+        let Some(observers) = host_obj.observers.get_mut(name) else {
+            return;
+        };
+        remove_observers_internal(observers, &mut removed_observers, observer, object);
+    } else {
+        for observers in host_obj.observers.values_mut() {
+            remove_observers_internal(observers, &mut removed_observers, observer, object);
         }
-    }
+    };
 
     for removed_observer in removed_observers {
         release(env, removed_observer.observer);
@@ -205,3 +210,21 @@ pub const CLASSES: ClassExports = objc_classes! {
 @end
 
 };
+
+/// A helper function to populate `removed_observers` with observers
+/// removed from `observers` based on `observer` and `object` criteria.
+fn remove_observers_internal(
+    observers: &mut Vec<Observer>,
+    removed_observers: &mut Vec<Observer>,
+    observer: id,
+    object: id,
+) {
+    let mut i = 0;
+    while i < observers.len() {
+        if observers[i].observer == observer && (object == nil || object == observers[i].object) {
+            removed_observers.push(observers.swap_remove(i));
+        } else {
+            i += 1;
+        }
+    }
+}
