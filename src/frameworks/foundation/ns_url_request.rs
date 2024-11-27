@@ -11,12 +11,19 @@ use crate::msg;
 use crate::objc::{id, nil, objc_classes, ClassExports};
 
 type NSURLRequestCachePolicy = NSUInteger;
+const NSURLRequestUseProtocolCachePolicy: NSURLRequestCachePolicy = 0;
 
 pub const CLASSES: ClassExports = objc_classes! {
 
 (env, this, _cmd);
 
 @implementation NSURLRequest: NSObject
+
++ (id)requestWithURL:(id)url {
+    msg![env; this requestWithURL:url
+                      cachePolicy:NSURLRequestUseProtocolCachePolicy
+                  timeoutInterval:60.0]
+}
 
 + (id)requestWithURL:(id)url
          cachePolicy:(NSURLRequestCachePolicy)cache_policy
