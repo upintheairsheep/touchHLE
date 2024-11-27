@@ -9,6 +9,8 @@ use super::ns_array;
 use super::ns_dictionary::DictionaryHostObject;
 use super::ns_enumerator::{fast_enumeration_helper, NSFastEnumerationState};
 use super::NSUInteger;
+use crate::abi::DotDotDot;
+use crate::environment::Environment;
 use crate::mem::MutPtr;
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, retain, ClassExports, HostObject, NSZonePtr,
@@ -98,6 +100,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+- (id)initWithObjects:(id)first_obj, ...args {
+    env.objc.borrow_mut::<SetHostObject>(this).dict = set_from_objects(env, first_obj, args);
+    this
+}
+
 - (())dealloc {
     std::mem::take(&mut env.objc.borrow_mut::<SetHostObject>(this).dict).release(env);
     env.objc.dealloc_object(this, &mut env.mem)
@@ -160,6 +167,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+- (id)initWithObjects:(id)first_obj, ...args {
+    env.objc.borrow_mut::<SetHostObject>(this).dict = set_from_objects(env, first_obj, args);
+    this
+}
+
 - (())dealloc {
     std::mem::take(&mut env.objc.borrow_mut::<SetHostObject>(this).dict).release(env);
     env.objc.dealloc_object(this, &mut env.mem)
@@ -219,3 +231,21 @@ pub const CLASSES: ClassExports = objc_classes! {
 @end
 
 };
+
+/// Helper method shared between `initWithObjects:` of `_touchHLE_NSSet` and
+/// `_touchHLE_NSMutableSet`
+fn set_from_objects(env: &mut Environment, first_obj: id, args: DotDotDot) -> DictionaryHostObject {
+    let null: id = msg_class![env; NSNull null];
+
+    let mut dict = <DictionaryHostObject as Default>::default();
+    dict.insert(env, first_obj, null, /* copy_key: */ false);
+    let mut varargs = args.start();
+    loop {
+        let next_arg: id = varargs.next(env);
+        if next_arg == nil {
+            break;
+        }
+        dict.insert(env, next_arg, null, /* copy_key: */ false);
+    }
+    dict
+}
