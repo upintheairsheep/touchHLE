@@ -4,7 +4,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use crate::objc::{objc_classes, ClassExports};
+use crate::objc::{id, nil, objc_classes, ClassExports};
 
 pub const CLASSES: ClassExports = objc_classes! {
 
@@ -12,6 +12,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 @implementation SKProduct: NSObject
 // TODO
+@end
+
+@implementation SKProductsRequest: NSObject
+- (id)initWithProductIdentifiers:(id)_ids { // NSSet *
+    // TODO
+    nil
+}
 @end
 
 };
