@@ -246,7 +246,7 @@ pub fn with_format(env: &mut Environment, format: id, args: VaList) -> String {
     String::from_utf8(res).unwrap()
 }
 
-fn from_rust_ordering(ordering: std::cmp::Ordering) -> NSComparisonResult {
+pub fn from_rust_ordering(ordering: std::cmp::Ordering) -> NSComparisonResult {
     match ordering {
         std::cmp::Ordering::Less => NSOrderedAscending,
         std::cmp::Ordering::Equal => NSOrderedSame,

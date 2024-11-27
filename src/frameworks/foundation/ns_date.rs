@@ -5,13 +5,17 @@
  */
 //! `NSDate`.
 
-use super::NSTimeInterval;
+use super::ns_string::from_rust_ordering;
+use super::{NSComparisonResult, NSTimeInterval};
 use crate::frameworks::core_foundation::time::{apple_epoch, SECS_FROM_UNIX_TO_APPLE_EPOCHS};
-use crate::objc::{autorelease, id, msg, msg_class, objc_classes, ClassExports, HostObject};
+use crate::objc::{
+    autorelease, id, msg, msg_class, objc_classes, ClassExports, HostObject, NSZonePtr,
+};
 
 use std::ops::{Add, Sub};
 use std::time::{Duration, SystemTime};
 
+#[derive(Default)]
 struct NSDateHostObject {
     time_interval: NSTimeInterval,
 }
@@ -23,6 +27,11 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 @implementation NSDate: NSObject
 
++ (id)allocWithZone:(NSZonePtr)_zone {
+    let host_object = Box::<NSDateHostObject>::default();
+    env.objc.alloc_object(this, host_object, &mut env.mem)
+}
+
 + (NSTimeInterval)timeIntervalSinceReferenceDate {
     SystemTime::now()
         .duration_since(apple_epoch())
@@ -31,17 +40,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 + (id)date {
-    // "Date objects are immutable, representing an invariant time interval
-    // relative to an absolute reference date (00:00:00 UTC on 1 January 2001)."
-    let time_interval = SystemTime::now()
-        .duration_since(apple_epoch())
-        .unwrap()
-        .as_secs_f64();
-    let host_object = Box::new(NSDateHostObject {
-        time_interval
-    });
-    let new = env.objc.alloc_object(this, host_object, &mut env.mem);
-    log_dbg!("[NSDate date] => {:?} ({:?}s)", new, time_interval);
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new init];
+    log_dbg!("[NSDate date] => {:?} ({:?}s)", new, env.objc.borrow::<NSDateHostObject>(this).time_interval);
     autorelease(env, new)
 }
 
@@ -81,6 +82,31 @@ pub const CLASSES: ClassExports = objc_classes! {
 + (id)dateWithTimeIntervalSinceNow:(NSTimeInterval)secs {
     let now: id = msg_class![env; NSDate date];
     msg![env; now addTimeInterval:secs]
+}
+
+- (id)init {
+    // "Date objects are immutable, representing an invariant time interval
+    // relative to an absolute reference date (00:00:00 UTC on 1 January 2001)."
+    let time_interval = SystemTime::now()
+        .duration_since(apple_epoch())
+        .unwrap()
+        .as_secs_f64();
+    env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = time_interval;
+    this
+}
+
+- (id)initWithTimeIntervalSinceNow:(NSTimeInterval)secs {
+    let time_interval = SystemTime::now()
+        .duration_since(apple_epoch())
+        .unwrap()
+        .as_secs_f64();
+    env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = time_interval + secs;
+    this
+}
+
+- (id)initWithTimeIntervalSinceReferenceDate:(NSTimeInterval)secs {
+    env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = secs;
+    this
 }
 
 - (NSTimeInterval)timeIntervalSinceDate:(id)anotherDate {
@@ -123,6 +149,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     let date = msg_class![env; NSDate date];
     env.objc.borrow_mut::<NSDateHostObject>(date).time_interval = interval;
     date
+}
+
+- (NSComparisonResult)compare:(id)anotherDate { // NSDate *
+    let host_object = env.objc.borrow::<NSDateHostObject>(this);
+    let another_date_host_object = env.objc.borrow::<NSDateHostObject>(anotherDate);
+    from_rust_ordering(host_object.time_interval.total_cmp(&another_date_host_object.time_interval))
 }
 
 @end
