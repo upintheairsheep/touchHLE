@@ -202,6 +202,16 @@ pub const CLASSES: ClassExports = objc_classes! {
     msg![env; this setObject:num forKey:key]
 }
 
+- (f64)doubleForKey:(id)key {
+    let val: id = msg![env; this objectForKey:key];
+    msg![env; val doubleValue]
+}
+- (())setDouble:(f64)value
+          forKey:(id)key {
+    let num: id = msg_class![env; NSNumber numberWithDouble:value];
+    msg![env; this setObject:num forKey:key]
+}
+
 - (id)stringForKey:(id)key {
     log_dbg!("NSUserDefaults stringForKey:{}", to_rust_string(env, key));
     let val: id = msg![env; this objectForKey:key];
