@@ -161,12 +161,15 @@ pub const CLASSES: ClassExports = objc_classes! {
     let key_ns_string = get_static_str(env, "UITag");
     let tag: NSInteger = msg![env; coder decodeIntegerForKey:key_ns_string];
 
+    let key_ns_string = get_static_str(env, "UIMultipleTouchEnabled");
+    let multi_touch_enabled: bool = msg![env; coder decodeBoolForKey:key_ns_string];
+
     let key_ns_string = get_static_str(env, "UISubviews");
     let subviews: id = msg![env; coder decodeObjectForKey:key_ns_string];
     let subview_count: NSUInteger = msg![env; subviews count];
 
     log_dbg!(
-        "[(UIView*){:?} initWithCoder:{:?}] => bounds {}, center {}, hidden {}, bg color {:?}, tag {}, opaque {}, {} subviews",
+        "[(UIView*){:?} initWithCoder:{:?}] => bounds {}, center {}, hidden {}, bg color {:?}, tag {}, opaque {}, multi touch enabled {}, {} subviews",
         this,
         coder,
         bounds,
@@ -175,6 +178,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         bg_color,
         tag,
         opaque,
+        multi_touch_enabled,
         subview_count,
     );
 
@@ -184,6 +188,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg![env; this setOpaque:opaque];
     () = msg![env; this setBackgroundColor:bg_color];
     () = msg![env; this setTag:tag];
+    () = msg![env; this setMultipleTouchEnabled:multi_touch_enabled];
 
     for i in 0..subview_count {
         let subview: id = msg![env; subviews objectAtIndex:i];
