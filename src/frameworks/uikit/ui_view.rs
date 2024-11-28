@@ -595,6 +595,26 @@ pub const CLASSES: ClassExports = objc_classes! {
     msg![env; this_layer convertPoint:point toLayer:other_layer]
 }
 
+- (CGRect)convertRect:(CGRect)rect
+             fromView:(id)other { // UIView*
+    let new_origin: CGPoint = msg![env; this convertPoint:(rect.origin) fromView:other];
+    // Size is preserved
+    CGRect {
+        origin: new_origin,
+        size: rect.size
+    }
+}
+
+- (CGRect)convertRect:(CGRect)rect
+               toView:(id)other { // UIView*
+    let new_origin: CGPoint = msg![env; this convertPoint:(rect.origin) toView:other];
+    // Size is preserved
+    CGRect {
+        origin: new_origin,
+        size: rect.size
+    }
+}
+
 - (())setAutoresizingMask:(NSUInteger)mask {
     log!("TODO: [(UIView*){:?} setAutoresizingMask:{}]", this, mask);
 }
