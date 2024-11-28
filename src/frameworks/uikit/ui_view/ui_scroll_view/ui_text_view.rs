@@ -77,13 +77,20 @@ pub const CLASSES: ClassExports = objc_classes! {
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
 
+- (id)initWithFrame:(CGRect)frame {
+    let this: id = msg_super![env; this initWithFrame:frame];
+    // TODO: refactor to a common init with `initWithCoder:`
+    // These aren't redundant, the setters fetch the real defaults.
+    () = msg![env; this setFont:nil];
+    () = msg![env; this setTextColor:nil];
+    this
+}
+
 - (id)initWithCoder:(id)coder {
     let this: id = msg_super![env; this initWithCoder:coder];
     // These aren't redundant, the setters fetch the real defaults.
     () = msg![env; this setFont:nil];
     () = msg![env; this setTextColor:nil];
-    // TODO: support background color
-    //() = msg![env; this setBackgroundColor:nil];
     this
 }
 
@@ -120,7 +127,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 - (())setTextColor:(id)new_text_color { // UIColor*
     let new_text_color: id = if new_text_color == nil {
-        msg_class![env; UIColor whiteColor]
+        msg_class![env; UIColor blackColor]
     } else {
         new_text_color
     };
