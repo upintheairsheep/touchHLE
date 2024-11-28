@@ -1016,6 +1016,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (bool)writeToFile:(id)path // NSString*
+         atomically:(bool)use_aux_file {
+    let encoding: NSStringEncoding = msg_class![env; NSString defaultCStringEncoding];
+    let error: MutPtr<id> = Ptr::null();
+    msg![env; this writeToFile:path atomically:use_aux_file encoding:encoding error:error]
+}
+
+- (bool)writeToFile:(id)path // NSString*
          atomically:(bool)use_aux_file
            encoding:(NSStringEncoding)encoding
               error:(MutPtr<id>)error { // NSError**
