@@ -46,6 +46,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 + (Class)class {
     this
 }
++ (bool)isSubclassOfClass:(Class)class {
+    env.objc.class_is_subclass_of(this, class)
+}
 
 // See the instance method section for the normal versions of these.
 + (id)retain {
