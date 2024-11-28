@@ -1221,19 +1221,18 @@ pub const CLASSES: ClassExports = objc_classes! {
     let Ok(bytes) = env.fs.read(GuestPath::new(&path)) else {
         return nil;
     };
+    let len = bytes.len();
 
-    let encoding = if bytes[..2] == [0xFE, 0xFF] || bytes[..2] == [0xFF, 0xFE] {
+    let encoding = if len > 1 && (bytes[..2] == [0xFE, 0xFF] || bytes[..2] == [0xFF, 0xFE]) {
         NSUTF16StringEncoding
-    } else if bytes[..3] == [0xEF, 0xBB, 0xBF] {
+    } else if len > 2 && bytes[..3] == [0xEF, 0xBB, 0xBF] {
         NSUTF8StringEncoding
     } else {
         msg_class![env; NSString defaultCStringEncoding]
     };
 
     let host_object = StringHostObject::decode(Cow::Owned(bytes), encoding);
-
     *env.objc.borrow_mut(this) = host_object;
-
     this
 }
 
