@@ -90,11 +90,21 @@ fn unlink(env: &mut Environment, path: ConstPtr<u8>) -> i32 {
     // TODO: handle errno properly
     set_errno(env, 0);
 
-    log!(
-        "TODO: unlink('{}') => -1",
-        env.mem.cstr_at_utf8(path).unwrap()
-    );
-    -1
+    log_dbg!("unlink({:?} '{:?}')", path, env.mem.cstr_at_utf8(path));
+
+    let path_str = env.mem.cstr_at_utf8(path).unwrap();
+    let guest_path = GuestPath::new(&path_str);
+    match env.fs.remove(guest_path) {
+        Ok(()) => 0,
+        Err(_) => {
+            log!(
+                "unlink({:?} '{:?}') failed",
+                path,
+                env.mem.cstr_at_utf8(path)
+            );
+            -1
+        }
+    }
 }
 
 pub const FUNCTIONS: FunctionExports = &[
