@@ -120,7 +120,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (())addSubview:(id)view {
     log_dbg!("[(UIWindow*){:?} addSubview:{:?}] => ()", this, view);
 
-    if view == nil && env.objc.borrow::<UIViewHostObject>(view).view_controller == nil {
+    if view == nil || env.objc.borrow::<UIViewHostObject>(view).view_controller == nil {
         () = msg_super![env; this addSubview:view];
         return;
     }
