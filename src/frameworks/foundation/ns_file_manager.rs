@@ -8,7 +8,7 @@
 use super::{ns_array, ns_string, NSUInteger};
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::fs::{GuestPath, GuestPathBuf};
-use crate::mem::{ConstPtr, MutPtr};
+use crate::mem::{ConstPtr, MutPtr, Ptr};
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, release, ClassExports, HostObject,
 };
@@ -174,6 +174,15 @@ pub const CLASSES: ClassExports = objc_classes! {
             false
         }
     }
+}
+
+- (bool)createDirectoryAtPath:(id)path // NSString *
+                   attributes:(id)attributes { // NSDictionary*
+    let error: MutPtr<id> = Ptr::null();
+    msg![env; this createDirectoryAtPath:path
+             withIntermediateDirectories:false
+                              attributes:attributes
+                                   error:error]
 }
 
 - (bool)createDirectoryAtPath:(id)path // NSString *
