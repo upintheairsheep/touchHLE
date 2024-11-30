@@ -7,7 +7,7 @@
 
 use super::ui_device::*;
 use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant};
-use crate::frameworks::foundation::ns_string::from_rust_string;
+use crate::frameworks::foundation::ns_string::{from_rust_string, get_static_str};
 use crate::frameworks::foundation::{ns_array, ns_string, NSInteger, NSUInteger};
 use crate::mem::MutPtr;
 use crate::objc::{
@@ -235,10 +235,23 @@ pub(super) fn UIApplicationMain(
 
         if let Some(main_nib_filename) = env.bundle.main_nib_filename() {
             let ns_main_nib_filename = from_rust_string(env, main_nib_filename.to_string());
-            let nib: id = msg_class![env; UINib nibWithNibName:ns_main_nib_filename bundle:nil];
-            release(env, ns_main_nib_filename);
-            let _: id = msg![env; nib instantiateWithOwner:ui_application
+            // We need to check first if main nib file exists,
+            // as `UINib nibWithNibName:bundle:` will crash on nonexistent
+            // nib otherwise
+            let type_: id = get_static_str(env, "nib");
+            let bundle: id = msg_class![env; NSBundle mainBundle];
+            let res: id = msg![env; bundle pathForResource:ns_main_nib_filename ofType:type_];
+            if res != nil {
+                let nib: id = msg_class![env; UINib nibWithNibName:ns_main_nib_filename bundle:nil];
+                release(env, ns_main_nib_filename);
+                let _: id = msg![env; nib instantiateWithOwner:ui_application
                                                options:nil];
+            } else {
+                log!(
+                    "Warning: couldn't load main nib file {:?}",
+                    env.bundle.main_nib_filename()
+                );
+            }
         }
 
         let delegate: id = msg![env; ui_application delegate];
