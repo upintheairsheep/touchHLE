@@ -159,6 +159,8 @@ impl Bundle {
     }
 
     pub fn main_nib_filename(&self) -> Option<&str> {
-        self.plist.get("NSMainNibFile").unwrap().as_string()
+        self.plist
+            .get("NSMainNibFile")
+            .map(|v| v.as_string().unwrap())
     }
 }

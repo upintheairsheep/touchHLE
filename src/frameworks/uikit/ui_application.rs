@@ -233,12 +233,13 @@ pub(super) fn UIApplicationMain(
         };
         let ui_application: id = msg![env; principal_class new];
 
-        let main_nib_filename = env.bundle.main_nib_filename().unwrap();
-        let ns_main_nib_filename = from_rust_string(env, main_nib_filename.to_string());
-        let nib: id = msg_class![env; UINib nibWithNibName:ns_main_nib_filename bundle:nil];
-        release(env, ns_main_nib_filename);
-        let _: id = msg![env; nib instantiateWithOwner:ui_application
+        if let Some(main_nib_filename) = env.bundle.main_nib_filename() {
+            let ns_main_nib_filename = from_rust_string(env, main_nib_filename.to_string());
+            let nib: id = msg_class![env; UINib nibWithNibName:ns_main_nib_filename bundle:nil];
+            release(env, ns_main_nib_filename);
+            let _: id = msg![env; nib instantiateWithOwner:ui_application
                                                options:nil];
+        }
 
         let delegate: id = msg![env; ui_application delegate];
         if delegate != nil {
