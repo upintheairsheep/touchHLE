@@ -24,7 +24,7 @@ use crate::frameworks::uikit::ui_view::ui_control::ui_button::{
     UIButtonTypeCustom, UIButtonTypeRoundedRect,
 };
 use crate::frameworks::uikit::ui_view::ui_control::{
-    UIControlEventTouchUpInside, UIControlStateNormal,
+    UIControlEventTouchUpInside, UIControlEventValueChanged, UIControlStateNormal,
 };
 use crate::fs::BundleData;
 use crate::image::Image;
@@ -148,8 +148,7 @@ struct AppPickerDelegateHostObject {
     orientation_default: bool,
     orientation_landscape_left: bool,
     orientation_landscape_right: bool,
-    fullscreen_default: bool,
-    fullscreen_on: bool,
+    fullscreen: Option<bool>,
 }
 impl HostObject for AppPickerDelegateHostObject {}
 
@@ -216,11 +215,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (())orientationLandscapeRight {
     env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).orientation_landscape_right = true;
 }
-- (())fullscreenDefault {
-    env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).fullscreen_default = true;
-}
-- (())fullscreenOn {
-    env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).fullscreen_on = true;
+- (())fullscreen:(id)switch { // UISwitch*
+    let switch_state: bool = msg![env; switch isOn];
+    env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).fullscreen = Some(switch_state);
 }
 
 - (())openFileManager {
@@ -520,9 +517,6 @@ fn show_app_picker_gui(
     fn update_scale_hack_buttons(env: &mut Environment, buttons: &[id], value: Option<NonZeroU32>) {
         update_quick_option_buttons(env, buttons, value.map_or(0, |v| (v.get() as usize)));
     }
-    fn update_fullscreen_buttons(env: &mut Environment, buttons: &[id], value: Option<()>) {
-        update_quick_option_buttons(env, buttons, value.map_or(0, |_| 1));
-    }
     fn update_orientation_buttons(
         env: &mut Environment,
         buttons: &[id],
@@ -543,9 +537,6 @@ fn show_app_picker_gui(
         &quick_options_stuff.scale_hack_buttons,
         quick_options_scale_hack,
     );
-    if let Some(ref buttons) = quick_options_stuff.fullscreen_buttons {
-        update_fullscreen_buttons(env, buttons, quick_options_fullscreen);
-    }
     update_orientation_buttons(
         env,
         &quick_options_stuff.orientation_buttons,
@@ -667,20 +658,11 @@ fn show_app_picker_gui(
                 &quick_options_stuff.orientation_buttons,
                 quick_options_orientation,
             );
-        } else if std::mem::take(&mut host_obj.fullscreen_default) {
-            quick_options_fullscreen = None;
-            update_fullscreen_buttons(
-                env,
-                &quick_options_stuff.fullscreen_buttons.unwrap(),
-                quick_options_fullscreen,
-            );
-        } else if std::mem::take(&mut host_obj.fullscreen_on) {
-            quick_options_fullscreen = Some(());
-            update_fullscreen_buttons(
-                env,
-                &quick_options_stuff.fullscreen_buttons.unwrap(),
-                quick_options_fullscreen,
-            );
+        } else if let Some(fullscreen) = std::mem::take(&mut host_obj.fullscreen) {
+            quick_options_fullscreen = match fullscreen {
+                false => None,
+                true => Some(()),
+            };
         }
     };
 
@@ -1213,7 +1195,6 @@ struct QuickOptionsStuff {
     main_view: id,
     scale_hack_buttons: [id; 5],
     orientation_buttons: [id; 3],
-    fullscreen_buttons: Option<[id; 2]>,
 }
 
 fn setup_quick_options(
@@ -1275,6 +1256,7 @@ fn setup_quick_options(
     enum RowKind {
         Label(&'static str),
         Buttons(&'static [(&'static str, &'static str)]),
+        Switch(&'static str),
     }
     let rows = [
         RowKind::Label("Scale hack"),
@@ -1292,8 +1274,8 @@ fn setup_quick_options(
             ("→", "orientationLandscapeRight"),
         ]),
         // ---- (divider for stuff skipped below)
-        RowKind::Label("Fullscreen"),
-        RowKind::Buttons(&[("Default", "fullscreenDefault"), ("On", "fullscreenOn")]),
+        RowKind::Label("Fullscreen (override)"),
+        RowKind::Switch("fullscreen:"),
     ];
     let rows_len_full = rows.len();
     let rows = if crate::window::Window::rotatable_fullscreen() {
@@ -1340,6 +1322,23 @@ fn setup_quick_options(
                     /* font_size: */ None,
                 ));
             }
+            RowKind::Switch(selector) => {
+                let switch_frame = CGRect {
+                    origin: CGPoint {
+                        x: main_frame.size.width / 2.0 - 94.0 / 2.0,
+                        y: row_center - 27.0 / 2.0,
+                    },
+                    size: Default::default(),
+                };
+
+                let switch: id = msg_class![env; UISwitch alloc];
+                let switch: id = msg![env; switch initWithFrame:switch_frame];
+                let selector = env.objc.lookup_selector(selector).unwrap();
+                () = msg![env; switch addTarget:delegate
+                                         action:selector
+                               forControlEvents:UIControlEventValueChanged];
+                () = msg![env; main_view addSubview:switch];
+            }
         }
     }
 
@@ -1347,6 +1346,5 @@ fn setup_quick_options(
         main_view,
         scale_hack_buttons: button_rows[0][..].try_into().unwrap(),
         orientation_buttons: button_rows[1][..].try_into().unwrap(),
-        fullscreen_buttons: button_rows.get(2).map(|r| r[..].try_into().unwrap()),
     }
 }
