@@ -198,9 +198,13 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+- (NSInteger)tag {
+    env.objc.borrow::<UIViewHostObject>(this).tag
+}
 - (())setTag:(NSInteger)tag {
     env.objc.borrow_mut::<UIViewHostObject>(this).tag = tag;
 }
+
 - (id)viewWithTag:(NSInteger)tag {
     let &UIViewHostObject {
         ref subviews,
