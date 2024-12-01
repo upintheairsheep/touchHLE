@@ -339,6 +339,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
 
+- (id)initWithCapacity:(NSUInteger)capacity {
+    env.objc.borrow_mut::<ArrayHostObject>(this).array.reserve(capacity as usize);
+    this
+}
+
 // NSCoding implementation
 - (id)initWithCoder:(id)coder {
     let objects = ns_keyed_unarchiver::decode_current_array(env, coder);
@@ -346,11 +351,6 @@ pub const CLASSES: ClassExports = objc_classes! {
     assert!(host_object.array.is_empty());
     host_object.array = objects; // objects are already retained
     this
-}
-
-- (id)initWithCapacity:(NSUInteger)_capacity {
-    // TODO: capacity
-    msg![env; this init]
 }
 
 - (())dealloc {
@@ -366,13 +366,6 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)objectEnumerator { // NSEnumerator*
     object_enumerator_inner(env, this)
-}
-
-// TODO: init methods etc
-
-- (id)initWithCapacity:(NSUInteger)numItems {
-    env.objc.borrow_mut::<ArrayHostObject>(this).array.reserve(numItems as usize);
-    this
 }
 
 - (NSUInteger)count {
