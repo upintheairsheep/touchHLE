@@ -320,6 +320,12 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, res)
 }
 
++ (id)stringWithCharacters:(ConstPtr<unichar>)characters length:(NSUInteger)length {
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new initWithCharacters:characters length:length];
+    autorelease(env, new)
+}
+
 + (id)pathWithComponents:(id)components {
     let count: NSUInteger = msg![env; components count];
     if count == 0 {
