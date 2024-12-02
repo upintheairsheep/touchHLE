@@ -184,7 +184,7 @@ enum CodeUnitIterator<'a> {
     Utf8(std::str::EncodeUtf16<'a>),
     Utf16(std::slice::Iter<'a, u16>),
 }
-impl<'a> Iterator for CodeUnitIterator<'a> {
+impl Iterator for CodeUnitIterator<'_> {
     type Item = u16;
 
     fn next(&mut self) -> Option<u16> {
@@ -194,7 +194,7 @@ impl<'a> Iterator for CodeUnitIterator<'a> {
         }
     }
 }
-impl<'a> Clone for CodeUnitIterator<'a> {
+impl Clone for CodeUnitIterator<'_> {
     fn clone(&self) -> Self {
         match self {
             CodeUnitIterator::Utf8(iter) => CodeUnitIterator::Utf8(iter.clone()),
@@ -202,7 +202,7 @@ impl<'a> Clone for CodeUnitIterator<'a> {
         }
     }
 }
-impl<'a> CodeUnitIterator<'a> {
+impl CodeUnitIterator<'_> {
     /// If the sequence of code units in `prefix` is a prefix of `self`,
     /// return [Some] with `self` advanced past that prefix, otherwise [None].
     fn strip_prefix(&self, prefix: &CodeUnitIterator) -> Option<Self> {

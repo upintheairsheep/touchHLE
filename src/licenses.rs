@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
-/// Prints copyright, authorship and license information.
+//! Prints copyright, authorship and license information.
 
 const MAIN_COPYRIGHT: &str = "
 touchHLE © 2023–2024 touchHLE project contributors.
