@@ -17,6 +17,7 @@ use crate::{msg_class, Environment};
 pub(super) struct NSDataHostObject {
     pub(super) bytes: MutVoidPtr,
     pub(super) length: NSUInteger,
+    free_when_done: bool,
 }
 impl HostObject for NSDataHostObject {}
 
@@ -31,6 +32,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     let host_object = Box::new(NSDataHostObject {
         bytes: Ptr::null(),
         length: 0,
+        free_when_done: true,
     });
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
@@ -39,6 +41,14 @@ pub const CLASSES: ClassExports = objc_classes! {
                    length:(NSUInteger)length {
     let new: id = msg![env; this alloc];
     let new: id = msg![env; new initWithBytesNoCopy:bytes length:length];
+    autorelease(env, new)
+}
+
++ (id)dataWithBytesNoCopy:(MutVoidPtr)bytes
+                   length:(NSUInteger)length
+             freeWhenDone:(bool)free_when_done {
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new initWithBytesNoCopy:bytes length:length freeWhenDone:free_when_done];
     autorelease(env, new)
 }
 
@@ -78,10 +88,17 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)initWithBytesNoCopy:(MutVoidPtr)bytes
                    length:(NSUInteger)length {
+    msg![env; this initWithBytesNoCopy:bytes length:length freeWhenDone:true]
+}
+
+- (id)initWithBytesNoCopy:(MutVoidPtr)bytes
+                   length:(NSUInteger)length
+             freeWhenDone:(bool)free_when_done {
     let host_object = env.objc.borrow_mut::<NSDataHostObject>(this);
     assert!(host_object.bytes.is_null() && host_object.length == 0);
     host_object.bytes = bytes;
     host_object.length = length;
+    host_object.free_when_done = free_when_done;
     this
 }
 
@@ -155,8 +172,8 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (())dealloc {
-    let &NSDataHostObject { bytes, .. } = env.objc.borrow(this);
-    if !bytes.is_null() {
+    let &NSDataHostObject { bytes, free_when_done, .. } = env.objc.borrow(this);
+    if !bytes.is_null() && free_when_done {
         env.mem.free(bytes);
     }
     env.objc.dealloc_object(this, &mut env.mem)
