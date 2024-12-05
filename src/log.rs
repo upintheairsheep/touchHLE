@@ -25,7 +25,9 @@ pub unsafe fn setup_log_file() {
 #[cfg(target_os = "android")]
 pub fn get_log_file() -> &'static std::fs::File {
     #[allow(static_mut_refs)]
-    unsafe { LOG_FILE.as_ref().unwrap() }
+    unsafe {
+        LOG_FILE.as_ref().unwrap()
+    }
 }
 
 /// Prints a log message unconditionally. Use this for errors or warnings.
