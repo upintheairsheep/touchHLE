@@ -24,6 +24,7 @@ pub unsafe fn setup_log_file() {
 /// Only for internal use by the logging macros.
 #[cfg(target_os = "android")]
 pub fn get_log_file() -> &'static std::fs::File {
+    #[allow(static_mut_refs)]
     unsafe { LOG_FILE.as_ref().unwrap() }
 }
 
