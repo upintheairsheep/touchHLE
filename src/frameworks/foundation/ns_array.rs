@@ -150,6 +150,26 @@ pub const CLASSES: ClassExports = objc_classes! {
     msg![env; this objectAtIndex:(size - 1)]
 }
 
+- (id)componentsJoinedByString:(id)str { // NSString *
+    let res: id = msg_class![env; NSMutableString new];
+    let count: NSUInteger = msg![env; this count];
+    if count == 0 {
+        autorelease(env, res);
+        return res;
+    }
+    for i in 0..count {
+        let curr_object: id = msg![env; this objectAtIndex:i];
+        let curr_desc: id = msg![env; curr_object description];
+        () = msg![env; res appendString:curr_desc];
+        if i != count-1 {
+            () = msg![env; res appendString:str];
+        }
+    }
+    let res_imm = msg![env; res copy];
+    release(env, res);
+    autorelease(env, res_imm)
+}
+
 @end
 
 // NSMutableArray is an abstract class. A subclass must provide everything
