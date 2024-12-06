@@ -6,7 +6,7 @@
 //! `NSFileManager` etc.
 
 use super::{ns_array, ns_string, NSUInteger};
-use crate::dyld::{export_c_func, FunctionExports};
+use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant};
 use crate::fs::{GuestPath, GuestPathBuf};
 use crate::mem::{ConstPtr, MutPtr, Ptr};
 use crate::objc::{
@@ -21,6 +21,17 @@ const NSDocumentDirectory: NSSearchPathDirectory = 9;
 
 type NSSearchPathDomainMask = NSUInteger;
 const NSUserDomainMask: NSSearchPathDomainMask = 1;
+
+const NSFileModificationDate: &str = "NSFileModificationDate";
+const NSFileSize: &str = "NSFileSize";
+
+pub const CONSTANTS: ConstantExports = &[
+    (
+        "_NSFileModificationDate",
+        HostConstant::NSString(NSFileModificationDate),
+    ),
+    ("_NSFileSize", HostConstant::NSString(NSFileSize)),
+];
 
 fn NSSearchPathForDirectoriesInDomains(
     env: &mut Environment,

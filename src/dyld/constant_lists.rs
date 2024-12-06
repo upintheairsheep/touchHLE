@@ -28,6 +28,7 @@ pub const CONSTANT_LISTS: &[super::ConstantExports] = &[
     core_graphics::cg_geometry::CONSTANTS,
     foundation::ns_error::CONSTANTS,
     foundation::ns_exception::CONSTANTS,
+    foundation::ns_file_manager::CONSTANTS,
     foundation::ns_keyed_unarchiver::CONSTANTS,
     foundation::ns_locale::CONSTANTS,
     foundation::ns_run_loop::CONSTANTS,
