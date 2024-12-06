@@ -55,6 +55,7 @@ impl NSNumberHostObject {
     impl_AsValue!(as_int, i32);
     impl_AsValue!(as_long_long, i64);
     impl_AsValue!(as_unsigned_long_long, u64);
+    impl_AsValue!(as_unsigned_int, u32);
     impl_AsValue!(as_float, f32);
     impl_AsValue!(as_double, f64);
 }
@@ -202,6 +203,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (u64)unsignedLongLongValue {
     env.objc.borrow::<NSNumberHostObject>(this).as_unsigned_long_long()
+}
+
+- (u32)unsignedIntValue {
+    env.objc.borrow::<NSNumberHostObject>(this).as_unsigned_int()
 }
 
 - (id)description {

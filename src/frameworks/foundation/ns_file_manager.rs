@@ -7,6 +7,7 @@
 
 use super::{ns_array, ns_string, NSUInteger};
 use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant};
+use crate::frameworks::foundation::ns_string::get_static_str;
 use crate::fs::{GuestPath, GuestPathBuf};
 use crate::mem::{ConstPtr, MutPtr, Ptr};
 use crate::objc::{
@@ -291,6 +292,36 @@ pub const CLASSES: ClassExports = objc_classes! {
     assert!(length > 0);
     // TODO: throw an exception if conversion fails
     msg![env; path UTF8String]
+}
+
+- (id)fileAttributesAtPath:(id)path // NSString *
+              traverseLink:(bool)traverse {
+    // TODO: other attributes
+    log!("Warning: NSFileManager fileAttributesAtPath:traverseLink: returns only NSFileModificationDate and NSFileSize attributes!");
+
+    let path = ns_string::to_rust_string(env, path); // TODO: avoid copy
+    // TODO: traverse link
+    log_dbg!("[(NSFileManager *){:?} fileAttributesAtPath:{} traverse:{}]", this, path, traverse);
+    let guest_path = GuestPath::new(&path);
+
+    let unix_timestamp: f64 = env.fs.modified(guest_path).unwrap() as f64;
+    let unix_ref_date: id = msg_class![env; NSDate dateWithTimeIntervalSince1970:0f64];
+    let unix_date: id = msg_class![env; NSDate dateWithTimeInterval:unix_timestamp sinceDate:unix_ref_date];
+
+    let size = env.fs.size(guest_path).unwrap();
+    let size_num: id = msg_class![env; NSNumber numberWithUnsignedLongLong:size];
+
+    let dict = msg_class![env; NSMutableDictionary new];
+
+    let modif_date_key = get_static_str(env, NSFileModificationDate);
+    () = msg![env; dict setObject:unix_date forKey:modif_date_key];
+
+    let size_key = get_static_str(env, NSFileSize);
+    () = msg![env; dict setObject:size_num forKey:size_key];
+
+    let dict_imm = msg![env; dict copy];
+    release(env, dict);
+    autorelease(env, dict_imm)
 }
 
 @end

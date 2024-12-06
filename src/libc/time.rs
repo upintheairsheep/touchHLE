@@ -90,6 +90,28 @@ pub struct tm {
 }
 unsafe impl SafeRead for tm {}
 
+impl tm {
+    /// A helper function to create a `struct tm` from components.
+    /// Right now is used to convert from `DateTime` of `zip` crate.
+    ///
+    /// Note: Months input is counted from 1.
+    pub fn from(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> Self {
+        tm {
+            tm_year: (year - 1900).into(),
+            tm_mon: (month - 1).into(),
+            tm_mday: day.into(),
+            tm_hour: hour.into(),
+            tm_min: minute.into(),
+            tm_sec: second.into(),
+            tm_wday: 0,
+            tm_yday: 0,
+            tm_isdst: 0,
+            tm_gmtoff: 0,
+            tm_zone: Ptr::null(),
+        }
+    }
+}
+
 // Helpers for timestamp to calendar date conversion, all of these are our own
 // original implementation details.
 const fn is_leap_year(year: i32) -> bool {

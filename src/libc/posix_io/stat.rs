@@ -105,6 +105,8 @@ fn fstat_inner(env: &mut Environment, fd: FileDescriptor, buf: MutPtr<stat>) -> 
         GuestFile::File(_) | GuestFile::IpaBundleFile(_) | GuestFile::ResourceFile(_) => {
             stat.st_mode |= S_IFREG;
 
+            // TODO: use `std::fs::metadata()` instead
+
             // Obtain file size
             // TODO: Use the stream_len() method if that ever gets stabilized.
             let old_pos = file.file.stream_position().unwrap();

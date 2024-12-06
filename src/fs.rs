@@ -698,6 +698,41 @@ impl Fs {
         matches!(self.lookup_node(path), Some(FsNode::Directory { .. }))
     }
 
+    pub fn modified(&self, path: &GuestPath) -> Result<i64, ()> {
+        // TODO: error handling
+        let node = self.lookup_node(path).ok_or(())?;
+        match node {
+            FsNode::File { location, .. } => match location {
+                // Note: the returned time is consistent with 'Date' and 'Time'
+                // of files inside IPA archive as reported by 7-zip.
+                // But it can be few hours off in comparison with modification
+                // time reported by NSFileModificationDate for app bundle files
+                // and changes if system timezone changes and apps gets
+                // re-installed!
+                // This shouldn't be a big problem as we're always assuming
+                // GMT in the codebase right now.
+                // TODO: double check that when we support different timezones
+                FileLocation::IpaFileRef(ipa_file_ref) => {
+                    Ok(ipa_file_ref.get_last_modified().into())
+                }
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn size(&self, path: &GuestPath) -> Result<u64, ()> {
+        // TODO: error handling
+        let node = self.lookup_node(path).ok_or(())?;
+        match node {
+            FsNode::File { location, .. } => match location {
+                FileLocation::IpaFileRef(ipa_file_ref) => Ok(ipa_file_ref.get_size()),
+                _ => unimplemented!(),
+            },
+            _ => unimplemented!(),
+        }
+    }
+
     /// Get an iterator over the names of files/directories in a directory.
     pub fn enumerate<P: AsRef<GuestPath>>(
         &self,
