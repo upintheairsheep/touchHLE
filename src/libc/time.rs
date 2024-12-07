@@ -249,6 +249,145 @@ fn test_timestamp_to_calendar_date() {
     do_test("Sat, 1955-03-26T20:47:45", -466053135);
 }
 
+pub fn calendar_date_to_timestamp(tm: tm) -> time_t {
+    let year = tm.tm_year + 1900;
+    let mut seconds = 0i64;
+
+    // Years
+    for y in 1970..year {
+        let days_in_year = if is_leap_year(y) { 366 } else { 365 };
+        seconds += days_in_year * 86400;
+    }
+
+    // Months
+    let days_in_months_cumul = if is_leap_year(year) {
+        MONTH_TO_DAY_LEAP[tm.tm_mon as usize]
+    } else {
+        MONTH_TO_DAY_NONLEAP[tm.tm_mon as usize]
+    };
+    seconds += days_in_months_cumul as i64 * 86400;
+
+    // Days
+    seconds += (tm.tm_mday as i64 - 1) * 86400;
+
+    // Hours, minutes and seconds
+    seconds += tm.tm_hour as i64 * 3600;
+    seconds += tm.tm_min as i64 * 60;
+    seconds += tm.tm_sec as i64;
+
+    // Adjust for dates before 1970
+    if year < 1970 {
+        let mut days_before_year = 0i64;
+        for y in year..1970 {
+            days_before_year += if is_leap_year(y) { 366 } else { 365 };
+        }
+        seconds -= days_before_year * 86400;
+    }
+
+    seconds.try_into().unwrap()
+}
+
+#[cfg(test)]
+#[test]
+fn test_calendar_date_to_timestamp() {
+    fn do_roundtrip_test(timestamp: time_t) {
+        let tm_struct = timestamp_to_calendar_date(timestamp);
+        let roundtripped = calendar_date_to_timestamp(tm_struct);
+        assert_eq!(
+            roundtripped, timestamp,
+            "Roundtrip failed: original={}, after converting to tm and back={}",
+            timestamp, roundtripped
+        );
+    }
+
+    let test_timestamps = [
+        1140398872,  // Mon, 2006-02-20T01:27:52
+        2113022454,  // Tue, 2036-12-16T06:40:54
+        -1509557849, // Thu, 1922-03-02T06:22:31
+        648910963,   // Wed, 1990-07-25T13:02:43
+        -1799896627, // Wed, 1912-12-18T20:42:53
+        638599644,   // Wed, 1990-03-28T04:47:24
+        2027357091,  // Thu, 2034-03-30T18:44:51
+        1641764511,  // Sun, 2022-01-09T21:41:51
+        1523639030,  // Fri, 2018-04-13T17:03:50
+        115553493,   // Thu, 1973-08-30T10:11:33
+        1117223147,  // Fri, 2005-05-27T19:45:47
+        -466053135,  // Sat, 1955-03-26T20:47:45
+    ];
+
+    for &timestamp in &test_timestamps {
+        do_roundtrip_test(timestamp);
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_calendar_date_to_timestamp_known_dates() {
+    // 1970-01-01T00:00:00 UTC
+    let tm_epoch = tm {
+        tm_year: 1970 - 1900,
+        tm_mon: 0, // January
+        tm_mday: 1,
+        tm_hour: 0,
+        tm_min: 0,
+        tm_sec: 0,
+        tm_wday: 0,
+        tm_yday: 0,
+        tm_isdst: 0,
+        tm_gmtoff: 0,
+        tm_zone: Ptr::null(),
+    };
+    assert_eq!(calendar_date_to_timestamp(tm_epoch), 0);
+
+    // 1970-01-02T00:00:00 UTC
+    let tm_next_day = tm {
+        tm_year: 1970 - 1900,
+        tm_mon: 0, // January
+        tm_mday: 2,
+        tm_hour: 0,
+        tm_min: 0,
+        tm_sec: 0,
+        tm_wday: 0,
+        tm_yday: 0,
+        tm_isdst: 0,
+        tm_gmtoff: 0,
+        tm_zone: Ptr::null(),
+    };
+    assert_eq!(calendar_date_to_timestamp(tm_next_day), 86400);
+
+    // 1972-03-01T00:00:00 UTC (a leap year)
+    let tm_leap = tm {
+        tm_year: 1972 - 1900,
+        tm_mon: 2, // March
+        tm_mday: 1,
+        tm_hour: 0,
+        tm_min: 0,
+        tm_sec: 0,
+        tm_wday: 0,
+        tm_yday: 0,
+        tm_isdst: 0,
+        tm_gmtoff: 0,
+        tm_zone: Ptr::null(),
+    };
+    assert_eq!(calendar_date_to_timestamp(tm_leap), 68256000);
+
+    // 1955-03-26T20:47:45
+    let tm_before_epoch = tm {
+        tm_year: 1955 - 1900,
+        tm_mon: 2, // March
+        tm_mday: 26,
+        tm_hour: 20,
+        tm_min: 47,
+        tm_sec: 45,
+        tm_wday: 0,
+        tm_yday: 0,
+        tm_isdst: 0,
+        tm_gmtoff: 0,
+        tm_zone: Ptr::null(),
+    };
+    assert_eq!(calendar_date_to_timestamp(tm_before_epoch), -466053135);
+}
+
 fn gmtime_r(env: &mut Environment, timestamp: ConstPtr<time_t>, res: MutPtr<tm>) -> MutPtr<tm> {
     let timestamp = env.mem.read(timestamp);
     let calendar_date = timestamp_to_calendar_date(timestamp);
@@ -273,6 +412,14 @@ fn localtime(env: &mut Environment, timestamp: ConstPtr<time_t>) -> MutPtr<tm> {
     // This doesn't have to be a unique temporary, gmtime and localtime are
     // allowed to share it.
     gmtime(env, timestamp)
+}
+
+fn mktime(env: &mut Environment, tm: MutPtr<tm>) -> time_t {
+    // TODO: respect the current timezone setting
+    let tm_value = env.mem.read(tm);
+    let res = calendar_date_to_timestamp(tm_value);
+    log_dbg!("mktime({:?}) => {}", tm_value, res);
+    res
 }
 
 // sys/time.h (POSIX)
@@ -364,6 +511,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(tzset()),
     export_c_func!(gmtime_r(_, _)),
     export_c_func!(gmtime(_)),
+    export_c_func!(mktime(_)),
     export_c_func!(localtime_r(_, _)),
     export_c_func!(localtime(_)),
     export_c_func!(gettimeofday(_, _)),
