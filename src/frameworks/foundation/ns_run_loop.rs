@@ -8,7 +8,7 @@
 //! Resources:
 //! - Apple's [Threading Programming Guide](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Multithreading/Introduction/Introduction.html)
 
-use super::{ns_string, ns_timer};
+use super::{ns_string, ns_timer, NSComparisonResult, NSOrderedAscending};
 use crate::dyld::{ConstantExports, HostConstant};
 use crate::frameworks::audio_toolbox::audio_queue::{handle_audio_queue, AudioQueueRef};
 use crate::frameworks::audio_toolbox::audio_unit::{render_audio_unit, AudioUnit};
@@ -17,7 +17,7 @@ use crate::frameworks::core_foundation::cf_run_loop::{
 };
 use crate::frameworks::{core_animation, media_player, uikit};
 use crate::objc::{id, msg, objc_classes, release, retain, ClassExports, HostObject};
-use crate::Environment;
+use crate::{msg_class, Environment};
 use std::time::{Duration, Instant};
 
 /// `NSString*`
@@ -50,6 +50,9 @@ struct NSRunLoopHostObject {
     /// Strong references to `NSTimer*` in no particular order. Timers are owned
     /// by the run loop. The timer must remove itself when invalidated.
     timers: Vec<id>,
+    /// A bool flag to indicate if the run loop is running.
+    /// It is needed to deal with re-entrance issues.
+    is_running: bool,
 }
 impl HostObject for NSRunLoopHostObject {}
 
@@ -67,6 +70,7 @@ pub const CLASSES: ClassExports = objc_classes! {
             audio_units: Vec::new(),
             audio_queues: Vec::new(),
             timers: Vec::new(),
+            is_running: false,
         });
         let new = env.objc.alloc_static_object(this, host_object, &mut env.mem);
         env.framework_state.foundation.ns_run_loop.main_thread_run_loop = Some(new);
@@ -114,6 +118,16 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (())run {
     run_run_loop(env, this, /* single_iteration: */ false);
+}
+- (())runUntilDate:(id)date { // NSDate *
+    let now: id = msg_class![env; NSDate date];
+    let comp: NSComparisonResult = msg![env; date compare:now];
+    if comp == NSOrderedAscending {
+        // Limit date is in the past, run loop once and return
+        run_run_loop(env, this, /* single_iteration: */ true);
+        return;
+    }
+    todo!("Properly account the limit date")
 }
 // TODO: other run methods
 
@@ -194,6 +208,17 @@ fn run_run_loop(env: &mut Environment, run_loop: id, single_iteration: bool) {
         log_dbg!("Entering run loop {:?} (indefinitely)", run_loop);
     }
 
+    if env.objc.borrow::<NSRunLoopHostObject>(run_loop).is_running {
+        log_dbg!(
+            "Run loop {:?} is already running, ignoring (TODO: make re-entrance handling optimal)",
+            run_loop
+        );
+        return;
+    };
+    env.objc
+        .borrow_mut::<NSRunLoopHostObject>(run_loop)
+        .is_running = true;
+
     // Temporary vectors used to track things without needing a reference to the
     // environment or to lock the object. Re-used each iteration for efficiency.
     let mut timers_tmp = Vec::new();
@@ -273,4 +298,8 @@ fn run_run_loop(env: &mut Environment, run_loop: id, single_iteration: bool) {
             break;
         }
     }
+
+    env.objc
+        .borrow_mut::<NSRunLoopHostObject>(run_loop)
+        .is_running = false;
 }
