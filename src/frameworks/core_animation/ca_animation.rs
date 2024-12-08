@@ -74,7 +74,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 @implementation CAAnimation: NSObject
 
 + (id)allocWithZone:(NSZonePtr)_zone {
-    let host_object = Box::new(CAAnimationHostObject::default());
+    let host_object = Box::<CAAnimationHostObject>::default();
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
 
@@ -133,7 +133,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 @implementation CAPropertyAnimation: CAAnimation
 
 + (id)allocWithZone:(NSZonePtr)_zone {
-    let host_object = Box::new(CAPropertyAnimationHostObject::default());
+    let host_object = Box::<CAPropertyAnimationHostObject>::default();
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
 
@@ -168,7 +168,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 @implementation CABasicAnimation: CAPropertyAnimation
 
 + (id)allocWithZone:(NSZonePtr)_zone {
-    let host_object = Box::new(CABasicAnimationHostObject::default());
+    let host_object = Box::<CABasicAnimationHostObject>::default();
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
 
@@ -220,7 +220,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 + (id)allocWithZone:(NSZonePtr)_zone {
-    let host_object = Box::new(CABasicAnimationHostObject::default());
+    let host_object = Box::<CABasicAnimationHostObject>::default();
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
 
