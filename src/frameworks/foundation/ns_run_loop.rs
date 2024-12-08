@@ -40,6 +40,7 @@ pub const CONSTANTS: ConstantExports = &[
 #[derive(Default)]
 pub struct State {
     main_thread_run_loop: Option<id>,
+    have_shown_reentrancy_warning: bool,
 }
 
 struct NSRunLoopHostObject {
@@ -209,10 +210,26 @@ fn run_run_loop(env: &mut Environment, run_loop: id, single_iteration: bool) {
     }
 
     if env.objc.borrow::<NSRunLoopHostObject>(run_loop).is_running {
+        // TODO: The code right now can't handle re-entrancy properly; a timer
+        //       callback that re-enters the run loop will cause an infite loop.
+        //       This needs to be fixed. For now, we skip execution to avoid
+        //       triggering these bugs, but this means the app can't yield
+        //       control. :(
         log_dbg!(
-            "Run loop {:?} is already running, ignoring (TODO: make re-entrance handling optimal)",
+            "Run loop {:?} is already running, skipping (TODO: support run loop re-entrancy)",
             run_loop
         );
+        if !std::mem::replace(
+            &mut env
+                .framework_state
+                .foundation
+                .ns_run_loop
+                .have_shown_reentrancy_warning,
+            true,
+        ) {
+            // Show one-time non-dbg warning to avoid spammy log output.
+            log!("Warning: run loop re-entrancy is unimplemented but may be relied upon by this app, this warning will only be shown once");
+        }
         return;
     };
     env.objc
