@@ -180,3 +180,10 @@ Other options:
         Note that many apps have an internal timer that determines how often
         they present frames; increasing the limit will not increase their
         framerate, but may make it less consistent.
+
+    --force-composition
+        Forces presentation of renderbuffer as if no fullscreen EAGL layer is
+        present, i.e. renderbuffer will go through the compositor.
+
+        Enabling this option may solve some rendering issues, but implies
+        a performance hit which is undesirable in most of the cases.
