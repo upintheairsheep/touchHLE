@@ -102,7 +102,7 @@ impl ObjC {
 
     pub fn debug_all_class_ivars_as_strings(&self, class: Class) -> Vec<String> {
         let mut class = class;
-        let mut selector_strings = Vec::new();
+        let mut ivars_strings = Vec::new();
         loop {
             let &ClassHostObject {
                 superclass,
@@ -110,14 +110,14 @@ impl ObjC {
                 ..
             } = self.borrow(class);
             let mut class_ivars_strings = ivars.keys().cloned().collect();
-            selector_strings.append(&mut class_ivars_strings);
+            ivars_strings.append(&mut class_ivars_strings);
             if superclass == nil {
                 break;
             } else {
                 class = superclass;
             }
         }
-        selector_strings
+        ivars_strings
     }
 }
 
