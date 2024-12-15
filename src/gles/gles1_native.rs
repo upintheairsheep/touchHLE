@@ -256,6 +256,9 @@ impl GLES for GLES1Native {
     }
 
     // Buffers
+    unsafe fn IsBuffer(&mut self, buffer: GLuint) -> GLboolean {
+        gles11::IsBuffer(buffer)
+    }
     unsafe fn GenBuffers(&mut self, n: GLsizei, buffers: *mut GLuint) {
         gles11::GenBuffers(n, buffers)
     }

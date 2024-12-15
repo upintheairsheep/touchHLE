@@ -454,7 +454,10 @@ fn glMaterialxv(env: &mut Environment, face: GLenum, pname: GLenum, params: Cons
     })
 }
 
-// Textures
+// Buffers
+fn glIsBuffer(env: &mut Environment, buffer: GLuint) -> GLboolean {
+    with_ctx_and_mem(env, |gles, _mem| unsafe { gles.IsBuffer(buffer) })
+}
 fn glGenBuffers(env: &mut Environment, n: GLsizei, buffers: MutPtr<GLuint>) {
     with_ctx_and_mem(env, |gles, mem| {
         let n_usize: GuestUSize = n.try_into().unwrap();
@@ -1400,6 +1403,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(glMaterialfv(_, _, _)),
     export_c_func!(glMaterialxv(_, _, _)),
     // Buffers
+    export_c_func!(glIsBuffer(_)),
     export_c_func!(glGenBuffers(_, _)),
     export_c_func!(glDeleteBuffers(_, _)),
     export_c_func!(glBindBuffer(_, _)),

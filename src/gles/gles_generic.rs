@@ -117,6 +117,7 @@ pub trait GLES {
     unsafe fn Materialxv(&mut self, face: GLenum, pname: GLenum, params: *const GLfixed);
 
     // Buffers
+    unsafe fn IsBuffer(&mut self, buffer: GLuint) -> GLboolean;
     unsafe fn GenBuffers(&mut self, n: GLsizei, buffers: *mut GLuint);
     unsafe fn DeleteBuffers(&mut self, n: GLsizei, buffers: *const GLuint);
     unsafe fn BindBuffer(&mut self, target: GLenum, buffer: GLuint);
