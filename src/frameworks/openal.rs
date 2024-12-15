@@ -246,6 +246,10 @@ fn alIsSource(_env: &mut Environment, source: ALuint) -> ALboolean {
     unsafe { al::alIsSource(source) }
 }
 
+fn alEnable(_env: &mut Environment, capability: ALenum) {
+    unsafe { al::alEnable(capability) };
+}
+
 fn alListenerf(_env: &mut Environment, param: ALenum, value: ALfloat) {
     unsafe { al::alListenerf(param, value) };
 }
@@ -603,9 +607,6 @@ fn alGetBufferf(_env: &mut Environment, _buffer: ALuint, _param: ALenum, _value:
     todo!();
 }
 fn alGetBufferi(_env: &mut Environment, _buffer: ALuint, _param: ALenum, _value: MutPtr<ALint>) {
-    todo!();
-}
-fn alEnable(_env: &mut Environment, _capability: ALenum) {
     todo!();
 }
 fn alDisable(_env: &mut Environment, _capability: ALenum) {
