@@ -373,6 +373,17 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+// NSMutableCopying implementation
+- (id)mutableCopyWithZone:(NSZonePtr)_zone {
+    let mut_arr: id = msg_class![env; NSMutableArray alloc];
+    let array = env.objc.borrow::<ArrayHostObject>(this).array.clone();
+    for &object in &array {
+        retain(env, object);
+    }
+    env.objc.borrow_mut::<ArrayHostObject>(this).array = array;
+    mut_arr
+}
+
 - (())dealloc {
     let host_object: &mut ArrayHostObject = env.objc.borrow_mut(this);
     let array = std::mem::take(&mut host_object.array);
