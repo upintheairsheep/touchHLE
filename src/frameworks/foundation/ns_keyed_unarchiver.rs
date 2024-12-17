@@ -362,6 +362,18 @@ pub fn decode_current_dict(env: &mut Environment, unarchiver: id) -> Vec<(id, id
     keys.into_iter().zip(vals).collect()
 }
 
+/// Shortcut for use by `[NSDate initWithCoder:]`.
+pub fn decode_current_date(env: &mut Environment, unarchiver: id) -> id {
+    let key = get_static_str(env, "NS.time");
+    let timestamp = get_value_to_decode_for_key(env, unarchiver, key)
+        .unwrap()
+        .as_real()
+        .unwrap();
+
+    let date: id = msg_class![env; NSDate alloc];
+    msg![env; date initWithTimeIntervalSinceReferenceDate:timestamp]
+}
+
 fn keys_for_key(env: &mut Environment, unarchiver: id, key: &str) -> Vec<Uid> {
     let host_obj = borrow_host_obj(env, unarchiver);
     let objects = host_obj.plist["$objects"].as_array().unwrap();

@@ -9,9 +9,10 @@ use super::ns_string::from_rust_ordering;
 use super::{NSComparisonResult, NSTimeInterval};
 use crate::frameworks::core_foundation::time::{apple_epoch, SECS_FROM_UNIX_TO_APPLE_EPOCHS};
 use crate::objc::{
-    autorelease, id, msg, msg_class, objc_classes, ClassExports, HostObject, NSZonePtr,
+    autorelease, id, msg, msg_class, objc_classes, release, ClassExports, HostObject, NSZonePtr,
 };
 
+use crate::frameworks::foundation::ns_keyed_unarchiver::decode_current_date;
 use std::ops::{Add, Sub};
 use std::time::{Duration, SystemTime};
 
@@ -126,6 +127,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)initWithTimeIntervalSinceReferenceDate:(NSTimeInterval)secs {
     env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = secs;
     this
+}
+
+// NSCoding implementation
+- (id)initWithCoder:(id)coder {
+    release(env, this);
+    // Note: Assuming NSKeyedUnarchiver as coder here
+    decode_current_date(env, coder)
 }
 
 - (NSTimeInterval)timeIntervalSinceDate:(id)anotherDate {
