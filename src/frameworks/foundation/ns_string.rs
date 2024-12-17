@@ -1049,17 +1049,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (f32)floatValue {
-    let st = to_rust_string(env, this);
-    let st = st.trim_start();
-    let mut cutoff = st.len();
-    for (i, c) in st.char_indices() {
-        if !c.is_ascii_digit() && c != '.' && c != '+' && c != '-' {
-            cutoff = i;
-            break;
-        }
-    }
-    // TODO: handle over/underflow properly
-    st[..cutoff].parse().unwrap_or(0.0)
+    float_value_common(env, this)
+}
+- (f64)doubleValue {
+    float_value_common(env, this)
 }
 
 - (i32)intValue {
@@ -1494,4 +1487,19 @@ fn is_match_at_position<F: Fn(u16, u16) -> bool>(
             false
         }
     })
+}
+
+/// Helper function for shared `doubleValue` and `floatValue` implementations.
+fn float_value_common<F: std::str::FromStr + Default>(env: &mut Environment, string: id) -> F {
+    let st = to_rust_string(env, string);
+    let st = st.trim_start();
+    let mut cutoff = st.len();
+    for (i, c) in st.char_indices() {
+        if !c.is_ascii_digit() && c != '.' && c != '+' && c != '-' {
+            cutoff = i;
+            break;
+        }
+    }
+    // TODO: handle over/underflow properly
+    st[..cutoff].parse().unwrap_or(Default::default())
 }
