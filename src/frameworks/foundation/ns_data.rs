@@ -7,6 +7,7 @@
 
 use super::ns_string::to_rust_string;
 use super::{NSRange, NSUInteger};
+use crate::frameworks::foundation::ns_keyed_unarchiver::decode_current_data;
 use crate::fs::GuestPath;
 use crate::mem::{ConstPtr, ConstVoidPtr, MutPtr, MutVoidPtr, Ptr};
 use crate::objc::{
@@ -182,6 +183,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 // NSCopying implementation
 - (id)copyWithZone:(NSZonePtr)_zone {
     retain(env, this)
+}
+
+// NSCoding implementation
+- (id)initWithCoder:(id)coder {
+    release(env, this);
+    // Note: Assuming NSKeyedUnarchiver as coder here
+    decode_current_data(env, coder, /* is_mutable: */ true)
 }
 
 - (id)mutableCopyWithZone:(NSZonePtr)_zone {

@@ -18,7 +18,7 @@ use crate::frameworks::foundation::{NSInteger, NSUInteger};
 use crate::frameworks::uikit::ui_geometry::{
     CGPointFromString, CGRectFromString, CGSizeFromString,
 };
-use crate::mem::ConstVoidPtr;
+use crate::mem::{ConstVoidPtr, GuestUSize, MutVoidPtr};
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, release, retain, ClassExports, HostObject,
     NSZonePtr,
@@ -372,6 +372,26 @@ pub fn decode_current_date(env: &mut Environment, unarchiver: id) -> id {
 
     let date: id = msg_class![env; NSDate alloc];
     msg![env; date initWithTimeIntervalSinceReferenceDate:timestamp]
+}
+
+/// Shortcut for use by `[NSData initWithCoder:]`.
+pub fn decode_current_data(env: &mut Environment, unarchiver: id, is_mutable: bool) -> id {
+    let key = get_static_str(env, "NS.data");
+    // TODO: avoid copying (twice!)
+    let bytes = get_value_to_decode_for_key(env, unarchiver, key)
+        .unwrap()
+        .as_data()
+        .unwrap()
+        .to_vec();
+    let len: GuestUSize = bytes.len().try_into().unwrap();
+    let guest_bytes: MutVoidPtr = env.mem.alloc(len);
+    env.mem
+        .bytes_at_mut(guest_bytes.cast(), len)
+        .copy_from_slice(bytes.as_slice());
+
+    assert!(is_mutable); // TODO
+    let data: id = msg_class![env; NSMutableData alloc];
+    msg![env; data initWithBytesNoCopy:guest_bytes length:len freeWhenDone:true]
 }
 
 fn keys_for_key(env: &mut Environment, unarchiver: id, key: &str) -> Vec<Uid> {
