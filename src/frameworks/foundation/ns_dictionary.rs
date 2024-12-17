@@ -286,6 +286,22 @@ pub fn init_with_objects_and_keys(
     this
 }
 
+/// Helper function to share `initWithDictionary:` implementations
+fn init_with_dictionary_common(env: &mut Environment, this: id, other_dict: id) -> id {
+    let other_host_object: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(other_dict));
+
+    let mut host_object = <DictionaryHostObject as Default>::default();
+
+    for key in other_host_object.iter_keys() {
+        let object = other_host_object.lookup(env, key);
+        host_object.insert(env, key, object, /* copy_key: */ true);
+    }
+
+    *env.objc.borrow_mut(this) = host_object;
+    *env.objc.borrow_mut(other_dict) = other_host_object;
+    this
+}
+
 pub const CLASSES: ClassExports = objc_classes! {
 
 (env, this, _cmd);
@@ -446,18 +462,7 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)initWithDictionary:(id)dictionary {
-    let other_host_object: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(dictionary));
-
-    let mut host_object = <DictionaryHostObject as Default>::default();
-
-    for key in other_host_object.iter_keys() {
-        let object = other_host_object.lookup(env, key);
-        host_object.insert(env, key, object, /* copy_key: */ true);
-    }
-
-    *env.objc.borrow_mut(this) = host_object;
-    *env.objc.borrow_mut(dictionary) = other_host_object;
-    this
+    init_with_dictionary_common(env, this, dictionary)
 }
 
 // TODO: enumeration, more init methods, etc
@@ -511,6 +516,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)initWithObjectsAndKeys:(id)first_object, ...dots {
     init_with_objects_and_keys(env, this, first_object, dots.start())
+}
+
+- (id)initWithDictionary:(id)dictionary {
+    init_with_dictionary_common(env, this, dictionary)
 }
 
 - (id)init {
