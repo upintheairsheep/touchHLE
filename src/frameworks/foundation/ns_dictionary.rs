@@ -516,7 +516,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     release(env, this);
     // FIXME: What if it's not an NSKeyedUnarchiver?
     let tuples = ns_keyed_unarchiver::decode_current_dict(env, coder);
-    dict_from_keys_and_objects(env, &tuples)
+    let dict = dict_from_keys_and_objects(env, &tuples);
+
+    let mut_dict = msg![env; dict mutableCopy];
+    release(env, dict);
+    mut_dict
 }
 
 // TODO: enumeration, more init methods, etc
