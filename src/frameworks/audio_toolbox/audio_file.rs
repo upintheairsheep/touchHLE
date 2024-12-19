@@ -472,6 +472,18 @@ pub fn AudioFileClose(env: &mut Environment, in_audio_file: AudioFileID) -> OSSt
     0 // success
 }
 
+fn AudioFileStreamOpen(
+    _env: &mut Environment,
+    _in_client_data: MutVoidPtr,
+    _in_property_listener_proc: MutVoidPtr,
+    _in_packets_proc: MutVoidPtr,
+    _in_file_type_hint: AudioFileTypeID,
+    _out_audio_file_stream: MutVoidPtr,
+) -> OSStatus {
+    log!("TODO: AudioFileStreamOpen(), returning kAudioFileUnspecifiedError!");
+    kAudioFileUnspecifiedError
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(AudioFileOpenURL(_, _, _, _)),
     export_c_func!(AudioFileGetPropertyInfo(_, _, _, _)),
@@ -481,4 +493,5 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(AudioFileReadPacketData(_, _, _, _, _, _, _)),
     export_c_func!(AudioFileOpenWithCallbacks(_, _, _, _, _, _, _)),
     export_c_func!(AudioFileClose(_)),
+    export_c_func!(AudioFileStreamOpen(_, _, _, _, _)),
 ];
