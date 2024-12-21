@@ -6,6 +6,7 @@
 //! The Media Player framework.
 
 pub mod media_library;
+pub mod media_picker_controller;
 pub mod media_query;
 pub mod movie_player;
 pub mod music_player;
