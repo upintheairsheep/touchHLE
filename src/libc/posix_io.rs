@@ -432,11 +432,12 @@ fn rename(env: &mut Environment, old: ConstPtr<u8>, new: ConstPtr<u8>) -> i32 {
 
     let old = env.mem.cstr_at_utf8(old).unwrap();
     let new = env.mem.cstr_at_utf8(new).unwrap();
-    log_dbg!("rename('{}', '{}')", old, new);
-    match env.fs.rename(GuestPath::new(&old), GuestPath::new(&new)) {
+    let res = match env.fs.rename(GuestPath::new(&old), GuestPath::new(&new)) {
         Ok(_) => 0,
         Err(_) => -1,
-    }
+    };
+    log_dbg!("rename('{}', '{}') => {}", old, new, res);
+    res
 }
 
 pub fn getcwd(env: &mut Environment, buf_ptr: MutPtr<u8>, buf_size: GuestUSize) -> MutPtr<u8> {

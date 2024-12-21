@@ -819,9 +819,9 @@ impl Fs {
         }
     }
 
-    pub fn rename<P: AsRef<GuestPath>>(&mut self, from: P, to: P) -> Result<(), ()> {
+    pub fn rename<P: AsRef<GuestPath> + Copy>(&mut self, from: P, to: P) -> Result<(), ()> {
         let from_node = self.lookup_node(from.as_ref()).ok_or(())?;
-        match from_node {
+        let from_host_path = match from_node {
             FsNode::File {
                 location: from_location,
                 writeable: from_writeable,
@@ -831,33 +831,43 @@ impl Fs {
                     return Err(());
                 };
                 assert!(from_writeable); // TODO: return errno
-                let to_node = self.lookup_node(to.as_ref()).ok_or(())?;
-                let FsNode::File {
-                    location: to_location,
-                    writeable: to_writeable,
-                } = to_node
-                else {
-                    // TODO: return EISDIR
-                    return Err(());
-                };
-                let FileLocation::Path(to_host_path) = to_location else {
-                    // TODO: return EACCES
-                    return Err(());
-                };
-                assert!(to_writeable); // TODO: return errno
-                let res = fs::rename(from_host_path, to_host_path);
-                if res.is_ok() {
-                    // Remove reference to the old from node
-                    let (parent_from, component) = self.lookup_parent_node(from.as_ref()).unwrap();
-                    let FsNode::Directory { children, .. } = parent_from else {
-                        panic!()
-                    };
-                    children.remove(&component).unwrap();
-                }
-                res.map_err(|_| ())
+                                         // TODO: avoid copy?
+                from_host_path.clone()
             }
             _ => unimplemented!(),
+        };
+
+        if self.lookup_node(to.as_ref()).is_none() {
+            // In case target guest node do not exist, we need to create one
+            let mut options = GuestOpenOptions::new();
+            options.write().create().truncate();
+            self.open_with_options(to, options)?;
         }
+
+        let to_node = self.lookup_node(to.as_ref()).unwrap();
+        let FsNode::File {
+            location: to_location,
+            writeable: to_writeable,
+        } = to_node
+        else {
+            // TODO: return EISDIR
+            return Err(());
+        };
+        let FileLocation::Path(to_host_path) = to_location else {
+            // TODO: return EACCES
+            return Err(());
+        };
+        assert!(to_writeable); // TODO: return errno
+        let res = fs::rename(from_host_path, to_host_path);
+        if res.is_ok() {
+            // Remove reference to the old from node
+            let (parent_from, component) = self.lookup_parent_node(from.as_ref()).unwrap();
+            let FsNode::Directory { children, .. } = parent_from else {
+                panic!()
+            };
+            children.remove(&component).unwrap();
+        }
+        res.map_err(|_| ())
     }
 
     /// Like [File::options] but for the guest filesystem.
