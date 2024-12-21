@@ -15,14 +15,18 @@ use crate::Environment;
 // FIXME: Many functions in this file should theoretically set errno or affect
 //        the floating-point environment. We're hoping apps won't rely on that.
 
+fn abs(_env: &mut Environment, arg: i32) -> i32 {
+    arg.abs()
+}
+fn fabs(_env: &mut Environment, arg: f64) -> f64 {
+    arg.abs()
+}
+
 // Trigonometric functions
 
 // TODO: These should also have `long double` variants, which can probably just
 // alias the `double` ones.
 
-fn abs(_env: &mut Environment, arg: i32) -> i32 {
-    arg.abs()
-}
 fn sin(env: &mut Environment, arg: f64) -> f64 {
     // TODO: handle errno properly
     set_errno(env, 0);
@@ -432,6 +436,7 @@ fn fminf(_env: &mut Environment, arg1: f32, arg2: f32) -> f32 {
 
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(abs(_)),
+    export_c_func!(fabs(_)),
     // Trigonometric functions
     export_c_func!(sin(_)),
     export_c_func!(sinf(_)),
