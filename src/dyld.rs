@@ -339,6 +339,19 @@ impl Dyld {
             {
                 // Often used for C++ RTTI
                 Ptr::from_bits(external_addr)
+            } else if let Some((symbol, _)) = search_lists(function_lists::FUNCTION_LISTS, name) {
+                // We want the same symbol name to always point to the same
+                // function.
+                let trampoline_ptr = self
+                    .create_proc_address_no_inval(mem, symbol)
+                    .unwrap()
+                    .to_ptr();
+                log_dbg!(
+                    "Linked external relocation to host function {} at {:?}",
+                    symbol,
+                    trampoline_ptr
+                );
+                trampoline_ptr
             } else {
                 unhandled_relocations
                     .entry(name)
