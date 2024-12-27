@@ -48,11 +48,13 @@ jobs:
       - name: Test
         run: cargo test --target x86_64-apple-darwin
       - name: Build
-        run: cargo build --target x86_64-apple-darwin --release && mv target/x86_64-apple-darwin/release/touchHLE .
+        run: cargo build --target x86_64-apple-darwin --release
+      - name: Create .app bundle
+        run: cd dev-scripts && ./make-macos-bundle.sh ../target/x86_64-apple-darwin/release/touchHLE && mkdir touchHLE-dmg-src && mv touchHLE.app touchHLE-dmg-src/ && hdiutil create -volname touchHLE -srcfolder touchHLE-dmg-src touchHLE.dmg && mv touchHLE.dmg ..
       - uses: actions/upload-artifact@v3
         with:
           name: touchHLE_macOS_x86_64
-          path: touchHLE
+          path: touchHLE.dmg
       - uses: actions/upload-artifact@v3
         with:
           name: TestApp_built_on_macOS

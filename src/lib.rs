@@ -135,10 +135,8 @@ pub fn main<T: Iterator<Item = String>>(mut args: T) -> Result<(), String> {
     echo!();
 
     {
-        let base_path = paths::user_data_base_path().to_str().unwrap();
-        if !base_path.is_empty() {
-            log!("Base path for touchHLE files: {}", base_path);
-        }
+        let base_path = paths::user_data_base_path();
+        log!("Base path for touchHLE files: {}", base_path.display());
         paths::prepopulate_user_data_dir();
     }
 
