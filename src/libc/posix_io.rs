@@ -352,8 +352,11 @@ pub fn lseek(env: &mut Environment, fd: FileDescriptor, offset: off_t, whence: i
     // TODO: handle errno properly
     set_errno(env, 0);
 
-    // TODO: error handling for unknown fd?
-    let file = env.libc_state.posix_io.file_for_fd(fd).unwrap();
+    let Some(file) = env.libc_state.posix_io.file_for_fd(fd) else {
+        log_dbg!("lseek({:?}, {:#x}, {}) => {}", fd, offset, whence, -1);
+        // TODO: set errno
+        return -1;
+    };
 
     let from = match whence {
         // not sure whether offset is treated as signed or unsigned when using
