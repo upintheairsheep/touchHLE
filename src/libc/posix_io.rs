@@ -218,8 +218,16 @@ pub fn read(
         return -1;
     }
 
-    // TODO: error handling for unknown fd?
-    let file = env.libc_state.posix_io.file_for_fd(fd).unwrap();
+    let Some(file) = env.libc_state.posix_io.file_for_fd(fd) else {
+        log!(
+            "Warning: read({:?}, {:?}, {:#x}) called with unknown fd, returning -1",
+            fd,
+            buffer,
+            size,
+        );
+        // TODO: set errno
+        return -1;
+    };
 
     let buffer_slice = env.mem.bytes_at_mut(buffer.cast(), size);
     match file.file.read(buffer_slice) {
