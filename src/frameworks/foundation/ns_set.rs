@@ -228,6 +228,17 @@ pub const CLASSES: ClassExports = objc_classes! {
     old_host_obj.dict.release(env);
 }
 
+- (())unionSet:(id)other { // NSSet *
+    let enumerator: id = msg![env; other objectEnumerator];
+    loop {
+        let next: id = msg![env; enumerator nextObject];
+        if next == nil {
+            break;
+        }
+        () = msg![env; this addObject:next];
+    }
+}
+
 @end
 
 };
