@@ -393,6 +393,20 @@ fn handle_touches_up(env: &mut Environment, map: HashMap<FingerId, Coords>) {
 
     let touches: id = msg_class![env; NSMutableSet allocWithZone:(MutVoidPtr::null())];
 
+    // We need to construct all touches set _BEFORE_ removing touches!
+    // (as removed one are reported as the part of the event)
+    let all_touches: id = msg_class![env; NSMutableSet allocWithZone:(MutVoidPtr::null())];
+    for &touch in env
+        .framework_state
+        .uikit
+        .ui_touch
+        .current_touches
+        .clone()
+        .values()
+    {
+        let _: () = msg![env; all_touches addObject:touch];
+    }
+
     // view to set of touches for this view
     let mut view_touches: HashMap<id, id> = HashMap::new();
 
@@ -442,18 +456,6 @@ fn handle_touches_up(env: &mut Environment, map: HashMap<FingerId, Coords>) {
             .current_touches
             .remove(&finger_id);
         release(env, touch); // only owner now should be the NSSet
-    }
-
-    let all_touches: id = msg_class![env; NSMutableSet allocWithZone:(MutVoidPtr::null())];
-    for &touch in env
-        .framework_state
-        .uikit
-        .ui_touch
-        .current_touches
-        .clone()
-        .values()
-    {
-        let _: () = msg![env; all_touches addObject:touch];
     }
 
     let event = ui_event::new_event(env, all_touches);
