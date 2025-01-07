@@ -14,6 +14,7 @@ pub mod ui_image_view;
 pub mod ui_label;
 pub mod ui_picker_view;
 pub mod ui_scroll_view;
+pub mod ui_web_view;
 pub mod ui_window;
 
 use super::ui_graphics::{UIGraphicsPopContext, UIGraphicsPushContext};
