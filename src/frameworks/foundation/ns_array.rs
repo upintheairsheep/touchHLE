@@ -7,9 +7,10 @@
 
 use super::ns_enumerator::{fast_enumeration_helper, NSFastEnumerationState};
 use super::ns_property_list_serialization::deserialize_plist_from_file;
-use super::{ns_keyed_unarchiver, ns_string, ns_url, NSNotFound, NSUInteger};
+use super::{ns_keyed_unarchiver, ns_string, ns_url, NSInteger, NSNotFound, NSUInteger};
+use crate::abi::{CallFromHost, GuestFunction};
 use crate::fs::GuestPath;
-use crate::mem::MutPtr;
+use crate::mem::{MutPtr, MutVoidPtr};
 use crate::objc::{
     autorelease, id, msg, msg_class, nil, objc_classes, release, retain, ClassExports, HostObject,
     NSZonePtr,
@@ -397,6 +398,18 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)objectEnumerator { // NSEnumerator*
     object_enumerator_inner(env, this)
+}
+
+- (())sortUsingFunction:(GuestFunction)comparator
+                context:(MutVoidPtr)context {
+    let host_object: &mut ArrayHostObject = env.objc.borrow_mut(this);
+    let mut array = std::mem::take(&mut host_object.array);
+    array.sort_by(|&a, &b| {
+        let res: NSInteger = comparator.call_from_host(env, (a, b, context));
+        res.cmp(&0)
+    });
+
+    env.objc.borrow_mut::<ArrayHostObject>(this).array = array;
 }
 
 - (NSUInteger)count {
