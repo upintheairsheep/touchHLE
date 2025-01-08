@@ -299,6 +299,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)objectEnumerator { // NSEnumerator*
     object_enumerator_inner(env, this)
 }
+- (id)reverseObjectEnumerator { // NSEnumerator*
+    reverse_object_enumerator_inner(env, this)
+}
 
 // NSFastEnumeration implementation
 - (NSUInteger)countByEnumeratingWithState:(MutPtr<NSFastEnumerationState>)state
@@ -404,6 +407,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)objectEnumerator { // NSEnumerator*
     object_enumerator_inner(env, this)
+}
+- (id)reverseObjectEnumerator { // NSEnumerator*
+    reverse_object_enumerator_inner(env, this)
 }
 
 - (())sortUsingFunction:(GuestFunction)comparator
@@ -537,6 +543,23 @@ fn build_description(env: &mut Environment, arr: id) -> id {
 fn object_enumerator_inner(env: &mut Environment, arr: id) -> id {
     let array_host_object: &mut ArrayHostObject = env.objc.borrow_mut(arr);
     let vec = array_host_object.array.to_vec();
+    object_enumerator_inner_helper(env, arr, vec)
+}
+
+/// A shared reverseObjectEnumerator helper method.
+fn reverse_object_enumerator_inner(env: &mut Environment, arr: id) -> id {
+    let array_host_object: &mut ArrayHostObject = env.objc.borrow_mut(arr);
+    // TODO: avoid copying?
+    let vec = array_host_object
+        .array
+        .iter()
+        .rev()
+        .cloned()
+        .collect::<Vec<_>>();
+    object_enumerator_inner_helper(env, arr, vec)
+}
+
+fn object_enumerator_inner_helper(env: &mut Environment, arr: id, vec: Vec<id>) -> id {
     let host_object = Box::new(ObjectEnumeratorHostObject {
         array: arr,
         iterator: vec.into_iter(),
