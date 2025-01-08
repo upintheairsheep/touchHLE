@@ -199,6 +199,10 @@ fn alcGetProcAddress(
     {
         Ptr::from_bits(ptr.addr_with_thumb_bit())
     } else {
+        if mangled_func_name == "_alcMacOSMixerOutputRate" {
+            log!("Tolerating nonexistent alcMacOSMixerOutputRate() func in alcGetProcAddress(), returning NULL.");
+            return Ptr::null();
+        }
         panic!(
             "Request for procedure address for unimplemented OpenAL function {}",
             mangled_func_name
