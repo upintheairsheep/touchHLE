@@ -34,10 +34,19 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 (env, this, _cmd);
 
-@implementation NSEnumerator: NSObject
 // Abstract class. Subclass must implement:
 // - (id)nextObject;
-// TODO: Provide NSFastEnumeration convenience implementation.
+@implementation NSEnumerator: NSObject
+
+// NSFastEnumeration (convenience) implementation
+- (NSUInteger)countByEnumeratingWithState:(MutPtr<NSFastEnumerationState>)state
+                                  objects:(MutPtr<id>)stackbuf
+                                    count:(NSUInteger)len {
+    fast_enumeration_helper(env, this, |env, _| {
+        msg![env; this nextObject]
+    }, state, stackbuf, len)
+}
+
 @end
 
 };
