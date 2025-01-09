@@ -304,8 +304,14 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (NSUInteger)countByEnumeratingWithState:(MutPtr<NSFastEnumerationState>)state
                                   objects:(MutPtr<id>)stackbuf
                                     count:(NSUInteger)len {
-    let mut iterator = env.objc.borrow_mut::<ArrayHostObject>(this).array.iter().copied();
-    fast_enumeration_helper(&mut env.mem, this, &mut iterator, state, stackbuf, len)
+    let count: NSUInteger = msg![env; this count];
+    fast_enumeration_helper(env, this, |env, idx| {
+        if idx < count {
+            msg![env; this objectAtIndex:idx]
+        } else {
+            nil
+        }
+    }, state, stackbuf, len)
 }
 
 // TODO: more init methods, etc
@@ -410,6 +416,21 @@ pub const CLASSES: ClassExports = objc_classes! {
     });
 
     env.objc.borrow_mut::<ArrayHostObject>(this).array = array;
+}
+
+// NSFastEnumeration implementation
+- (NSUInteger)countByEnumeratingWithState:(MutPtr<NSFastEnumerationState>)state
+                                  objects:(MutPtr<id>)stackbuf
+                                    count:(NSUInteger)len {
+    // TODO: check that array wasn't mutated!
+    let count: NSUInteger = msg![env; this count];
+    fast_enumeration_helper(env, this, |env, idx| {
+        if idx < count {
+            msg![env; this objectAtIndex:idx]
+        } else {
+            nil
+        }
+    }, state, stackbuf, len)
 }
 
 - (NSUInteger)count {

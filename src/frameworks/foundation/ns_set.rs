@@ -139,8 +139,17 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (NSUInteger)countByEnumeratingWithState:(MutPtr<NSFastEnumerationState>)state
                                   objects:(MutPtr<id>)stackbuf
                                     count:(NSUInteger)len {
-    let mut iterator = env.objc.borrow::<SetHostObject>(this).dict.iter_keys();
-    fast_enumeration_helper(&mut env.mem, this, &mut iterator, state, stackbuf, len)
+    // We assume that order in which objects are reported is consistent
+    // between calls!
+    let objects: id = msg![env; this allObjects];
+    let count: NSUInteger = msg![env; objects count];
+    fast_enumeration_helper(env, this, |env, idx| {
+        if idx < count {
+            msg![env; objects objectAtIndex:idx]
+        } else {
+            nil
+        }
+    }, state, stackbuf, len)
 }
 
 @end
@@ -205,8 +214,18 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (NSUInteger)countByEnumeratingWithState:(MutPtr<NSFastEnumerationState>)state
                                   objects:(MutPtr<id>)stackbuf
                                     count:(NSUInteger)len {
-    let mut iterator = env.objc.borrow::<SetHostObject>(this).dict.iter_keys();
-    fast_enumeration_helper(&mut env.mem, this, &mut iterator, state, stackbuf, len)
+    // TODO: check that set wasn't mutated!
+    // We assume that order in which objects are reported is consistent
+    // between calls!
+    let objects: id = msg![env; this allObjects];
+    let count: NSUInteger = msg![env; objects count];
+    fast_enumeration_helper(env, this, |env, idx| {
+        if idx < count {
+            msg![env; objects objectAtIndex:idx]
+        } else {
+            nil
+        }
+    }, state, stackbuf, len)
 }
 
 // TODO: more mutation methods
