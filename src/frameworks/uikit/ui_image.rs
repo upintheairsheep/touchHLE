@@ -78,6 +78,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)initWithContentsOfFile:(id)path { // NSString*
+    if path == nil {
+        return nil;
+    }
     let path = ns_string::to_rust_string(env, path); // TODO: avoid copy
     let Ok(bytes) = env.fs.read(GuestPath::new(&path)) else {
         log!("Warning: couldn't read image file at {:?}, returning nil", path);
