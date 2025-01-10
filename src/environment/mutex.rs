@@ -100,7 +100,7 @@ impl MutexState {
     pub fn mutex_is_locked(&self, mutex_id: MutexId) -> bool {
         self.mutexes
             .get(&mutex_id)
-            .map_or(false, |mutex| mutex.locked.is_some())
+            .is_some_and(|mutex| mutex.locked.is_some())
     }
 }
 

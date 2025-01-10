@@ -34,7 +34,7 @@ fn wctob(_env: &mut Environment, c: wint_t) -> i32 {
     if u32::try_from(c)
         .ok()
         .and_then(char::from_u32)
-        .map_or(false, |c| c.is_ascii())
+        .is_some_and(|c| c.is_ascii())
     {
         c
     } else {

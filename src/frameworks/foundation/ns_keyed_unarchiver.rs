@@ -135,10 +135,8 @@ pub const CLASSES: ClassExports = objc_classes! {
 // if the key is unknown.
 
 - (bool)decodeBoolForKey:(id)key { // NSString *
-    get_value_to_decode_for_key(env, this, key).map_or(
-        false,
-        |value| value.as_boolean().unwrap()
-    )
+    get_value_to_decode_for_key(env, this, key)
+        .is_some_and(|value| value.as_boolean().unwrap())
 }
 
 - (f64)decodeDoubleForKey:(id)key { // NSString *

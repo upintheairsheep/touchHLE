@@ -516,7 +516,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     fn ascii_number(iter: &mut Peekable<CodeUnitIterator>, leftmost_digit: char) -> u32 {
         let mut num = leftmost_digit.to_digit(10).unwrap();
         while let Some(a_digit_char) = iter.next_if(
-            |&x| char::from_u32(x as u32).map_or(false, |y| y.is_ascii_digit())
+            |&x| char::from_u32(x as u32).is_some_and(|y| y.is_ascii_digit())
         ) {
             num = num * 10 + char::from_u32(a_digit_char as u32).unwrap().to_digit(10).unwrap();
         }
@@ -608,7 +608,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         assert!(src.as_bytes().iter().all(|byte| byte.is_ascii()));
     }
     let dest = env.mem.bytes_at_mut(buffer, buffer_size);
-    if dest.len() < src.as_bytes().len() + 1 { // include null terminator
+    if dest.len() < src.len() + 1 { // include null terminator
         return false;
     }
 

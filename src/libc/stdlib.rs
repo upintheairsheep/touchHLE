@@ -450,7 +450,7 @@ pub fn atof_inner(
             len += 1;
         }
     }
-    if env.mem.read(start + len).to_ascii_lowercase() == b'e' {
+    if env.mem.read(start + len).eq_ignore_ascii_case(&b'e') {
         len += 1;
         let maybe_sign = env.mem.read(start + len);
         if maybe_sign == b'+' || maybe_sign == b'-' || maybe_sign.is_ascii_digit() {
