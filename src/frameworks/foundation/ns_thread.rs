@@ -106,6 +106,19 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 // TODO: construction etc
+
+- (())main {
+    // Default implementation.
+    // Subclasses can override this method
+    let &NSThreadHostObject {
+        target,
+        selector,
+        object,
+        ..
+    } = env.objc.borrow(this);
+    () = msg_send(env, (target, selector.unwrap(), object));
+}
+
 - (id)threadDictionary {
     // Initialize lazily in case the thread is started with pthread_create
     let thread_dictionary = env.objc.borrow::<NSThreadHostObject>(this).thread_dictionary;
@@ -142,14 +155,11 @@ pub fn _touchHLE_NSThreadInvocationHelper(env: &mut Environment, ns_thread_obj: 
     );
     assert_eq!(class, env.objc.get_known_class("NSThread", &mut env.mem));
 
-    let &NSThreadHostObject {
-        target,
-        selector,
-        object,
-        thread_dictionary: _,
-    } = env.objc.borrow(ns_thread_obj);
-    () = msg_send(env, (target, selector.unwrap(), object));
+    () = msg![env; ns_thread_obj main];
 
+    let &NSThreadHostObject { target, object, .. } = env.objc.borrow(ns_thread_obj);
+    // The objects target and argument are retained during the execution
+    // of the detached thread. They are released when the thread finally exits.
     release(env, object);
     release(env, target);
 
