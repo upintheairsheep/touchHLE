@@ -74,18 +74,12 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 + (())detachNewThreadSelector:(SEL)selector
-                       toTarget:(id)target
-                     withObject:(id)object {
-    let host_object = Box::new(NSThreadHostObject {
-        target,
-        selector: Some(selector),
-        object,
-        thread_dictionary: nil,
-    });
-    let this = env.objc.alloc_object(this, host_object, &mut env.mem);
-
-    retain(env, target);
-    retain(env, object);
+                     toTarget:(id)target
+                   withObject:(id)object {
+    let new: id = msg_class![env; NSThread alloc];
+    let new: id = msg![env; new initWithTarget:target
+                                      selector:selector
+                                        object:object];
 
     let symb = "__touchHLE_NSThreadInvocationHelper";
     let hf: HostFunction = &(_touchHLE_NSThreadInvocationHelper as fn(&mut Environment, _) -> _);
@@ -99,12 +93,22 @@ pub const CLASSES: ClassExports = objc_classes! {
     pthread_attr_setdetachstate(env, attr, PTHREAD_CREATE_DETACHED);
     let thread_ptr: MutPtr<pthread_t> = env.mem.alloc(guest_size_of::<pthread_t>()).cast();
 
-    pthread_create(env, thread_ptr, attr.cast_const(), gf, this.cast());
+    pthread_create(env, thread_ptr, attr.cast_const(), gf, new.cast());
 
     // TODO: post NSWillBecomeMultiThreadedNotification
 }
 
-// TODO: construction etc
+- (id)initWithTarget:(id)target
+            selector:(SEL)selector
+              object:(id)object {
+    env.objc.borrow_mut::<NSThreadHostObject>(this).target = target;
+    retain(env, target);
+    env.objc.borrow_mut::<NSThreadHostObject>(this).selector = Some(selector);
+    env.objc.borrow_mut::<NSThreadHostObject>(this).object = object;
+    retain(env, object);
+
+    this
+}
 
 - (())main {
     // Default implementation.
