@@ -168,7 +168,7 @@ pub fn pthread_create(
     0 // success
 }
 
-fn pthread_self(env: &mut Environment) -> pthread_t {
+pub fn pthread_self(env: &mut Environment) -> pthread_t {
     let current_thread = env.current_thread;
 
     // The main thread is a special case since it's not created via pthreads,
