@@ -83,7 +83,6 @@ pub const CLASSES: ClassExports = objc_classes! {
         thread_dictionary: nil,
     });
     let this = env.objc.alloc_object(this, host_object, &mut env.mem);
-    retain(env, this);
 
     retain(env, target);
     retain(env, object);
