@@ -373,8 +373,11 @@ pub const UIApplicationDidReceiveMemoryWarningNotification: &str =
     "UIApplicationDidReceiveMemoryWarningNotification";
 pub const UIApplicationLaunchOptionsRemoteNotificationKey: &str =
     "UIApplicationLaunchOptionsRemoteNotificationKey";
+pub const UIApplicationDidEnterBackgroundNotification: &str =
+    "UIApplicationDidEnterBackgroundNotification";
 
-/// `UIApplicationLaunchOptionsKey` values.
+/// `UIApplicationLaunchOptionsKey` and `NSNotificationName` values.
+/// (Both types are strings)
 pub const CONSTANTS: ConstantExports = &[
     (
         "_UIApplicationDidReceiveMemoryWarningNotification",
@@ -383,6 +386,10 @@ pub const CONSTANTS: ConstantExports = &[
     (
         "_UIApplicationLaunchOptionsRemoteNotificationKey",
         HostConstant::NSString(UIApplicationLaunchOptionsRemoteNotificationKey),
+    ),
+    (
+        "_UIApplicationDidEnterBackgroundNotification",
+        HostConstant::NSString(UIApplicationDidEnterBackgroundNotification),
     ),
 ];
 
