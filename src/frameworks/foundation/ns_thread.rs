@@ -38,6 +38,7 @@ struct NSThreadHostObject {
     object: id,
     /// `NSMutableDictionary*`
     thread_dictionary: id,
+    owned: bool,
 }
 impl HostObject for NSThreadHostObject {}
 
@@ -53,6 +54,7 @@ pub const CLASSES: ClassExports = objc_classes! {
         selector: None,
         object: nil,
         thread_dictionary: nil,
+        owned: false,
     });
     env.objc.alloc_object(this, host_object, &mut env.mem)
 }
@@ -99,25 +101,10 @@ pub const CLASSES: ClassExports = objc_classes! {
                                       selector:selector
                                         object:object];
 
-    let symb = "__touchHLE_NSThreadInvocationHelper";
-    let hf: HostFunction = &(_touchHLE_NSThreadInvocationHelper as fn(&mut Environment, _) -> _);
-    let gf = env
-        .dyld
-        .create_guest_function(&mut env.mem, symb, hf);
+    // We own this thread and need to release it after it's finished
+    env.objc.borrow_mut::<NSThreadHostObject>(new).owned = true;
 
-    let attr: MutPtr<pthread_attr_t> = env.mem.alloc(guest_size_of::<pthread_attr_t>()).cast();
-    pthread_attr_init(env, attr);
-
-    pthread_attr_setdetachstate(env, attr, PTHREAD_CREATE_DETACHED);
-    let thread_ptr: MutPtr<pthread_t> = env.mem.alloc(guest_size_of::<pthread_t>()).cast();
-
-    pthread_create(env, thread_ptr, attr.cast_const(), gf, new.cast());
-
-    let pthread = env.mem.read(thread_ptr);
-    assert!(!State::get(env).ns_threads.contains_key(&pthread));
-    State::get(env).ns_threads.insert(pthread, new);
-
-    // TODO: post NSWillBecomeMultiThreadedNotification
+    msg![env; new start]
 }
 
 - (id)initWithTarget:(id)target
@@ -130,6 +117,28 @@ pub const CLASSES: ClassExports = objc_classes! {
     retain(env, object);
 
     this
+}
+
+- (())start {
+    let symb = "__touchHLE_NSThreadInvocationHelper";
+    let hf: HostFunction = &(_touchHLE_NSThreadInvocationHelper as fn(&mut Environment, _) -> _);
+    let gf = env
+        .dyld
+        .create_guest_function(&mut env.mem, symb, hf);
+
+    let attr: MutPtr<pthread_attr_t> = env.mem.alloc(guest_size_of::<pthread_attr_t>()).cast();
+    pthread_attr_init(env, attr);
+
+    pthread_attr_setdetachstate(env, attr, PTHREAD_CREATE_DETACHED);
+    let thread_ptr: MutPtr<pthread_t> = env.mem.alloc(guest_size_of::<pthread_t>()).cast();
+
+    pthread_create(env, thread_ptr, attr.cast_const(), gf, this.cast());
+
+    let pthread = env.mem.read(thread_ptr);
+    assert!(!State::get(env).ns_threads.contains_key(&pthread));
+    State::get(env).ns_threads.insert(pthread, this);
+
+    // TODO: post NSWillBecomeMultiThreadedNotification
 }
 
 - (())main {
@@ -187,11 +196,17 @@ pub fn _touchHLE_NSThreadInvocationHelper(env: &mut Environment, ns_thread_obj: 
         "_touchHLE_NSThreadInvocationHelper on object of class: {}",
         env.objc.get_class_name(class)
     );
-    assert_eq!(class, env.objc.get_known_class("NSThread", &mut env.mem));
+    let thread_class = env.objc.get_known_class("NSThread", &mut env.mem);
+    assert!(env.objc.class_is_subclass_of(class, thread_class));
 
     () = msg![env; ns_thread_obj main];
 
-    let &NSThreadHostObject { target, object, .. } = env.objc.borrow(ns_thread_obj);
+    let &NSThreadHostObject {
+        target,
+        object,
+        owned,
+        ..
+    } = env.objc.borrow(ns_thread_obj);
     // The objects target and argument are retained during the execution
     // of the detached thread. They are released when the thread finally exits.
     release(env, object);
@@ -201,7 +216,11 @@ pub fn _touchHLE_NSThreadInvocationHelper(env: &mut Environment, ns_thread_obj: 
     let res = State::get(env).ns_threads.remove(&pthread);
     assert!(res.is_some());
 
-    release(env, ns_thread_obj);
+    if owned {
+        // Releasing only if the object was owned
+        // e.g. created with `detachNewThreadSelector:toTarget:withObject:`
+        release(env, ns_thread_obj);
+    }
 
     // TODO: NSThread exit
 }
