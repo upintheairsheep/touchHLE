@@ -25,6 +25,7 @@ pub const CLASS_LISTS: &[super::ClassExports] = &[
     core_graphics::cg_image::CLASSES,
     core_foundation::cf_run_loop_timer::CLASSES, // Special internal classes.
     game_kit::gk_local_player::CLASSES,
+    game_kit::gk_score::CLASSES,
     foundation::ns_array::CLASSES,
     foundation::ns_autorelease_pool::CLASSES,
     foundation::ns_bundle::CLASSES,

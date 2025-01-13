@@ -11,3 +11,4 @@
 //! Thus, we need to provide some stubs in order to not crash on that call.
 
 pub mod gk_local_player;
+pub mod gk_score;
