@@ -7,7 +7,8 @@
 //! very long and frequently-updated list.
 
 use crate::frameworks::{
-    core_animation, core_foundation, core_graphics, foundation, media_player, opengles, uikit,
+    core_animation, core_foundation, core_graphics, foundation, game_kit, media_player, opengles,
+    uikit,
 };
 use crate::libc;
 
@@ -26,6 +27,7 @@ pub const CONSTANT_LISTS: &[super::ConstantExports] = &[
     core_graphics::cg_affine_transform::CONSTANTS,
     core_graphics::cg_color_space::CONSTANTS,
     core_graphics::cg_geometry::CONSTANTS,
+    game_kit::gk_local_player::CONSTANTS,
     foundation::ns_error::CONSTANTS,
     foundation::ns_exception::CONSTANTS,
     foundation::ns_file_manager::CONSTANTS,
