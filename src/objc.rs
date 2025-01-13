@@ -99,7 +99,7 @@ impl ObjC {
 ///
 /// ref. <https://clang.llvm.org/docs/Block-ABI-Apple.html#runtime-helper-functions>
 fn _Block_object_dispose(_env: &mut Environment, object: ConstVoidPtr, flags: i32) {
-    // `BLOCK_FIELD_IS_BYREF` fkag defines an on stack structure holding
+    // `BLOCK_FIELD_IS_BYREF` flag defines an on stack structure holding
     // the __block variable. It is _probably_ safe to ignore.
     // TODO: properly implement for block support
     assert!(flags == 8); // BLOCK_FIELD_IS_BYREF
