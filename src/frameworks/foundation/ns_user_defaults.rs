@@ -202,6 +202,16 @@ pub const CLASSES: ClassExports = objc_classes! {
     msg![env; this setObject:num forKey:key]
 }
 
+- (f32)floatForKey:(id)key {
+    let val: id = msg![env; this objectForKey:key];
+    msg![env; val floatValue]
+}
+- (())setFloat:(f32)value
+        forKey:(id)key {
+    let num: id = msg_class![env; NSNumber numberWithFloat:value];
+    msg![env; this setObject:num forKey:key]
+}
+
 - (f64)doubleForKey:(id)key {
     let val: id = msg![env; this objectForKey:key];
     msg![env; val doubleValue]
