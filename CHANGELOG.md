@@ -34,6 +34,10 @@ Compatibility:
   - [Shrek Forever After](https://appdb.touchhle.org/apps/427) (@ciciplusplus)
   - [Spore Origins](https://appdb.touchhle.org/apps/302) (@ciciplusplus, @hikari-no-yume, @teromene)
   - [Defender Chronicles](https://appdb.touchhle.org/apps/267) (@hujerhoe)
+  - [Real Racing](https://appdb.touchhle.org/apps/188) (@ciciplusplus)
+  - [Tom Clancy's Splinter Cell: Conviction](https://appdb.touchhle.org/apps/416) (@ciciplusplus)
+  - [Assassin's Creed](https://appdb.touchhle.org/apps/413) (@ciciplusplus)
+  - [N.O.V.A. Near Orbit Vanguard Alliance](https://appdb.touchhle.org/apps/443) (@ciciplusplus)
 - API support improvements:
   - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @abnormalmaps, @hujerhoe, @acieslewicz)
   - UITextField now supports real text input with a keyboard. On Windows/macOS physical keyboard is used, on Android it's done via a system soft keyboard. (@ciciplusplus)
