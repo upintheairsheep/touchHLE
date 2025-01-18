@@ -9,7 +9,7 @@ use crate::dyld::{export_c_func, FunctionExports};
 use crate::fs::GuestPath;
 use crate::libc::errno::set_errno;
 use crate::libc::posix_io::{FileDescriptor, STDERR_FILENO, STDIN_FILENO, STDOUT_FILENO};
-use crate::mem::ConstPtr;
+use crate::mem::{ConstPtr, GuestUSize, MutPtr};
 use crate::Environment;
 use std::time::Duration;
 
@@ -107,6 +107,19 @@ fn unlink(env: &mut Environment, path: ConstPtr<u8>) -> i32 {
     }
 }
 
+fn gethostname(env: &mut Environment, name: MutPtr<u8>, namelen: GuestUSize) -> i32 {
+    // TODO: define unique hostname once networking is supported
+    let hostname = "touchHLE";
+    let len: GuestUSize = hostname.len().try_into().unwrap();
+    // TODO: check against HOST_NAME_MAX
+    assert!(namelen > len);
+    env.mem
+        .bytes_at_mut(name, len)
+        .copy_from_slice(hostname.as_bytes());
+    env.mem.write(name + len, b'\0');
+    0 // Success
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(sleep(_)),
     export_c_func!(usleep(_)),
@@ -115,4 +128,5 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(isatty(_)),
     export_c_func!(access(_, _)),
     export_c_func!(unlink(_)),
+    export_c_func!(gethostname(_, _)),
 ];
