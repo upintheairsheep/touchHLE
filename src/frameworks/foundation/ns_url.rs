@@ -165,6 +165,15 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 @end
 
+// A caching layer a top of NSURL, it's OK to stub
+// as we don't have yet a networking support
+@implementation NSURLCache: NSObject
++ (id)sharedURLCache {
+    // TODO
+    nil
+}
+@end
+
 };
 
 /// Shortcut for host code, provides a view of a URL as a path.
