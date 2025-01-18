@@ -5,5 +5,6 @@
  */
 
 pub mod mount;
+pub mod ptrace;
 pub mod timeb;
 pub mod utsname;

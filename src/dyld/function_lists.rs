@@ -49,6 +49,7 @@ pub const FUNCTION_LISTS: &[super::FunctionExports] = &[
     libc::stdlib::qsort::FUNCTIONS,
     libc::string::FUNCTIONS,
     libc::sys::mount::FUNCTIONS,
+    libc::sys::ptrace::FUNCTIONS,
     libc::sys::timeb::FUNCTIONS,
     libc::sys::utsname::FUNCTIONS,
     libc::sysctl::FUNCTIONS,

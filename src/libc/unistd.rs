@@ -36,7 +36,7 @@ fn usleep(env: &mut Environment, useconds: useconds_t) -> i32 {
 }
 
 #[allow(non_camel_case_types)]
-type pid_t = i32;
+pub type pid_t = i32;
 
 fn getpid(_env: &mut Environment) -> pid_t {
     // Not a real value, since touchHLE only simulates a single process.
