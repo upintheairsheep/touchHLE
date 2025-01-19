@@ -286,6 +286,17 @@ forUndefinedKey:(id)key { // NSString*
         log!("Applying game-specific hack for AssassinsCreed: ignoring performSelectorOnMainThread:SEL(moviePlayerInit:) waitUntilDone:true");
         return;
     }
+    if env.bundle.bundle_identifier().starts_with("com.gameloft.Ferrari") && wait {
+        if sel == env.objc.lookup_selector("startMovie:").unwrap() {
+            log!("Applying game-specific hack for Ferrari GT: ignoring performSelectorOnMainThread:SEL({}) waitUntilDone:true", sel.as_str(&env.mem));
+            return;
+        }
+        if sel == env.objc.lookup_selector("initTextInput:").unwrap() || sel == env.objc.lookup_selector("removeTextField:").unwrap() {
+            log!("Applying game-specific hack for Ferrari GT: performing performSelectorOnMainThread:SEL({}) waitUntilDone:true on thread {}", sel.as_str(&env.mem), env.current_thread);
+            () = msg_send(env, (this, sel, arg));
+            return;
+        }
+    }
     // TODO: support waiting
     // This would require tail calls for message send or a switch to async model
     assert!(!wait);
