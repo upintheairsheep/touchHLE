@@ -11,6 +11,7 @@
 use sdl2_sys::{SDL_StartTextInput, SDL_StopTextInput};
 
 use crate::frameworks::core_graphics::CGRect;
+use crate::frameworks::foundation::ns_string::to_rust_string;
 use crate::frameworks::foundation::{ns_string, NSInteger, NSRange, NSUInteger};
 use crate::frameworks::uikit::ui_font::UITextAlignmentLeft;
 use crate::frameworks::uikit::ui_view::ui_window::{
@@ -145,6 +146,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (())setSecureTextEntry:(bool)secure {
     log!("TODO: setSecureTextEntry:{}", secure);
+}
+
+- (())setPlaceholder:(id)placeholder { // NSString*
+    log!("TODO: setPlaceholder:'{}'", to_rust_string(env, placeholder));
 }
 
 // weak/non-retaining
