@@ -25,6 +25,7 @@ const kAudioSessionProperty_AudioCategory: AudioSessionPropertyID = fourcc(b"aca
 const kAudioSessionProperty_CurrentHardwareSampleRate: AudioSessionPropertyID = fourcc(b"chsr");
 const kAudioSessionProperty_CurrentHardwareOutputNumberChannels: AudioSessionPropertyID =
     fourcc(b"choc");
+const kAudioSessionProperty_CurrentHardwareOutputVolume: AudioSessionPropertyID = fourcc(b"chov");
 const kAudioSessionProperty_PreferredHardwareIOBufferDuration: AudioSessionPropertyID =
     fourcc(b"iobd");
 const kAudioSessionProperty_PreferredHardwareSampleRate: AudioSessionPropertyID = fourcc(b"hwsr");
@@ -35,6 +36,7 @@ pub struct State {
     audio_session_category: u32,
     pub current_hardware_sample_rate: f64,
     pub current_hardware_output_number_channels: u32,
+    current_hardware_output_volume: f32,
 }
 impl Default for State {
     fn default() -> Self {
@@ -45,6 +47,7 @@ impl Default for State {
             // Values taken from an iOS 2 simulator
             current_hardware_sample_rate: 44100.0,
             current_hardware_output_number_channels: 2,
+            current_hardware_output_volume: 1.0,
         }
     }
 }
@@ -79,6 +82,7 @@ fn AudioSessionGetProperty(
         kAudioSessionProperty_AudioCategory => guest_size_of::<u32>(),
         kAudioSessionProperty_CurrentHardwareSampleRate => guest_size_of::<f64>(),
         kAudioSessionProperty_CurrentHardwareOutputNumberChannels => guest_size_of::<u32>(),
+        kAudioSessionProperty_CurrentHardwareOutputVolume => guest_size_of::<f32>(),
         _ => unimplemented!("Unimplemented property ID: {}", debug_fourcc(in_ID)),
     };
     let io_data_size_value = env.mem.read(io_data_size);
@@ -103,6 +107,10 @@ fn AudioSessionGetProperty(
         }
         kAudioSessionProperty_CurrentHardwareOutputNumberChannels => {
             let value: u32 = state.current_hardware_output_number_channels;
+            env.mem.write(out_data.cast(), value);
+        }
+        kAudioSessionProperty_CurrentHardwareOutputVolume => {
+            let value: f32 = state.current_hardware_output_volume;
             env.mem.write(out_data.cast(), value);
         }
         _ => unreachable!(),
