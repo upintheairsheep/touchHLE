@@ -7,7 +7,7 @@
 
 use super::{ns_array, ns_string};
 use crate::dyld::{ConstantExports, HostConstant};
-use crate::objc::{id, objc_classes, ClassExports, HostObject};
+use crate::objc::{id, objc_classes, release, retain, ClassExports, HostObject, NSZonePtr};
 use crate::options::Options;
 use crate::Environment;
 use std::ffi::CStr;
@@ -108,6 +108,7 @@ fn get_preferred_countries() -> Vec<String> {
 }
 
 struct NSLocaleHostObject {
+    /// `NSString*`
     country_code: id,
 }
 impl HostObject for NSLocaleHostObject {}
@@ -154,6 +155,17 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 // TODO: constructors, more accessors
+
+- (())dealloc {
+    let host_obj = env.objc.borrow::<NSLocaleHostObject>(this);
+    release(env, host_obj.country_code);
+    env.objc.dealloc_object(this, &mut env.mem)
+}
+
+// NSCopying implementation
+- (id)copyWithZone:(NSZonePtr)_zone {
+    retain(env, this)
+}
 
 - (id)objectForKey:(id)key {
     let key_str: &str = &ns_string::to_rust_string(env, key);

@@ -8,12 +8,20 @@
 use super::cf_allocator::CFAllocatorRef;
 use super::cf_array::CFArrayRef;
 use super::cf_string::CFStringRef;
-use crate::dyld::FunctionExports;
+use super::CFTypeRef;
+use crate::dyld::{export_c_func, FunctionExports};
 use crate::frameworks::foundation::NSUInteger;
-use crate::objc::id;
-use crate::{export_c_func, msg, msg_class, Environment};
+use crate::objc::{id, msg, msg_class};
+use crate::Environment;
 
 type CFLocaleIdentifier = CFStringRef;
+/// `NSLocale` is toll-free bridged with `CFLocaleRef`
+type CFLocaleRef = CFTypeRef;
+
+fn CFLocaleCopyCurrent(env: &mut Environment) -> CFLocaleRef {
+    let locale: id = msg_class![env; NSLocale currentLocale];
+    msg![env; locale copy]
+}
 
 fn CFLocaleCopyPreferredLanguages(env: &mut Environment) -> CFArrayRef {
     let arr = msg_class![env; NSLocale preferredLanguages];
@@ -34,6 +42,7 @@ fn CFLocaleCreateCanonicalLocaleIdentifierFromString(
 }
 
 pub const FUNCTIONS: FunctionExports = &[
+    export_c_func!(CFLocaleCopyCurrent()),
     export_c_func!(CFLocaleCopyPreferredLanguages()),
     export_c_func!(CFLocaleCreateCanonicalLocaleIdentifierFromString(_, _)),
 ];
