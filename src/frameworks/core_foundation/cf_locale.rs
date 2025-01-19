@@ -17,6 +17,7 @@ use crate::Environment;
 type CFLocaleIdentifier = CFStringRef;
 /// `NSLocale` is toll-free bridged with `CFLocaleRef`
 type CFLocaleRef = CFTypeRef;
+type CFLocaleKey = CFStringRef;
 
 fn CFLocaleCopyCurrent(env: &mut Environment) -> CFLocaleRef {
     let locale: id = msg_class![env; NSLocale currentLocale];
@@ -41,8 +42,13 @@ fn CFLocaleCreateCanonicalLocaleIdentifierFromString(
     msg![env; ns_string initWithString:locale_identifier]
 }
 
+fn CFLocaleGetValue(env: &mut Environment, locale: CFLocaleRef, key: CFLocaleKey) -> CFTypeRef {
+    msg![env; locale objectForKey:key]
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(CFLocaleCopyCurrent()),
     export_c_func!(CFLocaleCopyPreferredLanguages()),
     export_c_func!(CFLocaleCreateCanonicalLocaleIdentifierFromString(_, _)),
+    export_c_func!(CFLocaleGetValue(_, _)),
 ];
