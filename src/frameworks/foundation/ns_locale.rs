@@ -7,7 +7,7 @@
 
 use super::{ns_array, ns_string};
 use crate::dyld::{ConstantExports, HostConstant};
-use crate::objc::{id, objc_classes, release, retain, ClassExports, HostObject, NSZonePtr};
+use crate::objc::{id, nil, objc_classes, release, retain, ClassExports, HostObject, NSZonePtr};
 use crate::options::Options;
 use crate::Environment;
 use std::ffi::CStr;
@@ -22,6 +22,7 @@ pub const CONSTANTS: ConstantExports = &[(
 #[derive(Default)]
 pub struct State {
     current_locale: Option<id>,
+    system_locale: Option<id>,
     preferred_languages: Option<id>,
 }
 impl State {
@@ -150,6 +151,24 @@ pub const CLASSES: ClassExports = objc_classes! {
             &mut env.mem
         );
         State::get(env).current_locale = Some(new_locale);
+        new_locale
+    }
+}
+
++ (id)systemLocale {
+    if let Some(locale) = State::get(env).system_locale {
+        locale
+    } else {
+        let host_object = NSLocaleHostObject {
+            // Was confirmed on the iOS Simulator
+            country_code: nil,
+        };
+        let new_locale = env.objc.alloc_object(
+            this,
+            Box::new(host_object),
+            &mut env.mem
+        );
+        State::get(env).system_locale = Some(new_locale);
         new_locale
     }
 }

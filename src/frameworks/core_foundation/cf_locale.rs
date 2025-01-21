@@ -42,6 +42,10 @@ fn CFLocaleCreateCanonicalLocaleIdentifierFromString(
     msg![env; ns_string initWithString:locale_identifier]
 }
 
+fn CFLocaleGetSystem(env: &mut Environment) -> CFLocaleRef {
+    msg_class![env; NSLocale systemLocale]
+}
+
 fn CFLocaleGetValue(env: &mut Environment, locale: CFLocaleRef, key: CFLocaleKey) -> CFTypeRef {
     msg![env; locale objectForKey:key]
 }
@@ -50,5 +54,6 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(CFLocaleCopyCurrent()),
     export_c_func!(CFLocaleCopyPreferredLanguages()),
     export_c_func!(CFLocaleCreateCanonicalLocaleIdentifierFromString(_, _)),
+    export_c_func!(CFLocaleGetSystem()),
     export_c_func!(CFLocaleGetValue(_, _)),
 ];
