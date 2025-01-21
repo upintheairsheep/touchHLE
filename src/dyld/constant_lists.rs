@@ -40,5 +40,6 @@ pub const CONSTANT_LISTS: &[super::ConstantExports] = &[
     opengles::eagl::CONSTANTS,
     uikit::ui_application::CONSTANTS,
     uikit::ui_device::CONSTANTS,
+    uikit::ui_view::ui_control::ui_text_field::CONSTANTS,
     uikit::ui_view::ui_window::CONSTANTS,
 ];

@@ -10,6 +10,7 @@
 
 use sdl2_sys::{SDL_StartTextInput, SDL_StopTextInput};
 
+use crate::dyld::{ConstantExports, HostConstant};
 use crate::frameworks::core_graphics::CGRect;
 use crate::frameworks::foundation::ns_string::to_rust_string;
 use crate::frameworks::foundation::{ns_string, NSInteger, NSRange, NSUInteger};
@@ -29,6 +30,15 @@ type UIKeyboardType = NSInteger;
 pub type UIReturnKeyType = NSInteger;
 type UITextAutocapitalizationType = NSInteger;
 type UITextAutocorrectionType = NSInteger;
+
+// TODO: Actually send notification on text change
+const UITextFieldTextDidChangeNotification: &str = "UITextFieldTextDidChangeNotification";
+
+/// `NSNotificationName` values.
+pub const CONSTANTS: ConstantExports = &[(
+    "_UITextFieldTextDidChangeNotification",
+    HostConstant::NSString(UITextFieldTextDidChangeNotification),
+)];
 
 struct UITextFieldHostObject {
     superclass: super::UIControlHostObject,
