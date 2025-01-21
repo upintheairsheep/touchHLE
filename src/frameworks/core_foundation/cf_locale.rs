@@ -9,7 +9,7 @@ use super::cf_allocator::CFAllocatorRef;
 use super::cf_array::CFArrayRef;
 use super::cf_string::CFStringRef;
 use super::CFTypeRef;
-use crate::dyld::{export_c_func, FunctionExports};
+use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant};
 use crate::frameworks::foundation::NSUInteger;
 use crate::objc::{id, msg, msg_class};
 use crate::Environment;
@@ -18,6 +18,13 @@ type CFLocaleIdentifier = CFStringRef;
 /// `NSLocale` is toll-free bridged with `CFLocaleRef`
 type CFLocaleRef = CFTypeRef;
 type CFLocaleKey = CFStringRef;
+
+pub const kCFLocaleCountryCode: &str = "kCFLocaleCountryCodeKey";
+
+pub const CONSTANTS: ConstantExports = &[(
+    "_kCFLocaleCountryCode",
+    HostConstant::NSString(kCFLocaleCountryCode),
+)];
 
 fn CFLocaleCopyCurrent(env: &mut Environment) -> CFLocaleRef {
     let locale: id = msg_class![env; NSLocale currentLocale];

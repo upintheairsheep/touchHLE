@@ -7,6 +7,7 @@
 
 use super::{ns_array, ns_string};
 use crate::dyld::{ConstantExports, HostConstant};
+use crate::frameworks::core_foundation::cf_locale::kCFLocaleCountryCode;
 use crate::objc::{id, nil, objc_classes, release, retain, ClassExports, HostObject, NSZonePtr};
 use crate::options::Options;
 use crate::Environment;
@@ -189,7 +190,10 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)objectForKey:(id)key {
     let key_str: &str = &ns_string::to_rust_string(env, key);
     match key_str {
-        NSLocaleCountryCode => {
+        // Note: this is not the cleanest separation between NS and CF parts
+        // But it does work on the iOS Simulator
+        // TODO: Define NSLocaleCountryCode _as_ kCFLocaleCountryCode
+        NSLocaleCountryCode | kCFLocaleCountryCode => {
             let &NSLocaleHostObject { country_code } = env.objc.borrow(this);
             country_code
         },
