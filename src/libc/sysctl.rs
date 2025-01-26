@@ -7,6 +7,7 @@
 
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::libc::errno::set_errno;
+use crate::libc::mach_host::PAGE_SIZE;
 use crate::libc::sysctl::SysInfoType::String;
 use crate::mem::{guest_size_of, ConstPtr, GuestUSize, MutPtr, MutVoidPtr};
 use crate::Environment;
@@ -80,7 +81,7 @@ fn sysctlbyname(
         "hw.physmem" => SysInfoType::Int32(121634816), // not sure about this type
         "hw.usermem" => SysInfoType::Int32(93564928), // not sure about this type
         "hw.memsize" => SysInfoType::Int64(121634816),
-        "hw.pagesize" => SysInfoType::Int64(4096),
+        "hw.pagesize" => SysInfoType::Int64(PAGE_SIZE.into()),
         // High kernel limits
         "kern.ostype" => String(b"Darwin"),
         "kern.osrelease" => String(b"10.0.0d3"),
