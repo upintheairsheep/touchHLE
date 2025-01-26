@@ -206,9 +206,6 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (())orientationDefault {
     env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).orientation_default = true;
 }
-- (())orientationDefault {
-    env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).orientation_default = true;
-}
 - (())orientationLandscapeLeft {
     env.objc.borrow_mut::<AppPickerDelegateHostObject>(this).orientation_landscape_left = true;
 }
