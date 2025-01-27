@@ -5,10 +5,10 @@
  */
 //! `UINavigationController`.
 
-use crate::frameworks::foundation::NSUInteger;
+use crate::frameworks::foundation::{ns_array, NSUInteger};
 use crate::objc::{
-    id, impl_HostObject_with_superclass, msg, nil, objc_classes, release, retain, ClassExports,
-    NSZonePtr, SEL,
+    autorelease, id, impl_HostObject_with_superclass, msg, nil, objc_classes, release, retain,
+    ClassExports, NSZonePtr, SEL,
 };
 
 // TODO: navigation bar and toolbar
@@ -95,6 +95,14 @@ pub const CLASSES: ClassExports = objc_classes! {
     }
 }
 
+- (id)viewControllers {
+    let vcs = env.objc.borrow::<UINavigationControllerHostObject>(this).navigation_stack.to_vec();
+    for vc in &vcs {
+        retain(env, *vc);
+    }
+    let res = ns_array::from_vec(env, vcs);
+    autorelease(env, res)
+}
 - (())setViewControllers:(id)controllers { // NSArray *
     msg![env; this setViewControllers:controllers animated:false]
 }
