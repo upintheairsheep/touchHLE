@@ -27,6 +27,7 @@ pub mod core_animation;
 pub mod core_audio_types;
 pub mod core_foundation;
 pub mod core_graphics;
+pub mod core_location;
 pub mod dnssd;
 pub mod foundation;
 pub mod game_kit;
