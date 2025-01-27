@@ -168,6 +168,16 @@ pub fn pthread_create(
     0 // success
 }
 
+fn pthread_equal(env: &mut Environment, thread1: pthread_t, thread2: pthread_t) -> i32 {
+    if State::get(env).threads.get(&thread1).unwrap().thread_id
+        == State::get(env).threads.get(&thread2).unwrap().thread_id
+    {
+        1
+    } else {
+        0
+    }
+}
+
 pub fn pthread_self(env: &mut Environment) -> pthread_t {
     let current_thread = env.current_thread;
 
@@ -324,6 +334,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(pthread_attr_setstacksize(_, _)),
     export_c_func!(pthread_attr_destroy(_)),
     export_c_func!(pthread_create(_, _, _, _)),
+    export_c_func!(pthread_equal(_, _)),
     export_c_func!(pthread_self()),
     export_c_func!(pthread_join(_, _)),
     export_c_func!(pthread_detach(_)),
