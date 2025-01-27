@@ -595,6 +595,15 @@ pub const CLASSES: ClassExports = objc_classes! {
     retain(env, this)
 }
 
+// NSMutableCopying implementation
+- (id)mutableCopyWithZone:(NSZonePtr)_zone {
+    let str_mut: id = msg_class![env; NSMutableString alloc];
+    // TODO: use `initWithString:`
+    let str_mut: id = msg![env; str_mut init];
+    () = msg![env; str_mut setString:this];
+    str_mut
+}
+
 - (bool)getCString:(MutPtr<u8>)buffer
          maxLength:(NSUInteger)buffer_size
           encoding:(NSStringEncoding)encoding {
