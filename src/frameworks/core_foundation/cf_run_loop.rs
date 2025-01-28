@@ -12,7 +12,7 @@ use crate::dyld::{export_c_func, ConstantExports, FunctionExports, HostConstant}
 use crate::frameworks::core_foundation::time::CFTimeInterval;
 use crate::frameworks::foundation::ns_run_loop::run_run_loop_single_iteration;
 use crate::frameworks::foundation::ns_string;
-use crate::objc::{msg, msg_class};
+use crate::objc::{id, msg, msg_class};
 use crate::Environment;
 
 pub type CFRunLoopRef = super::CFTypeRef;
@@ -39,14 +39,13 @@ fn CFRunLoopRunInMode(
         msg![env; mode isEqualToString:default_mode]
             || msg![env; mode isEqualToString:common_modes]
     );
-    assert!(seconds <= 0.001);
-    // TODO: we're currently supporting only the main run loop
-    log_dbg!(
-        "TODO: properly implement CFRunLoopRunInMode [current thread {}], running a single iteration of the main run loop",
-        env.current_thread
-    );
-    let main_run_loop = CFRunLoopGetMain(env);
-    run_run_loop_single_iteration(env, main_run_loop);
+    let current_run_loop = CFRunLoopGetCurrent(env);
+    if seconds == 0.0 {
+        run_run_loop_single_iteration(env, current_run_loop);
+    } else {
+        let limit_date: id = msg_class![env; NSDate dateWithTimeIntervalSinceNow:seconds];
+        () = msg![env; current_run_loop runUntilDate:limit_date];
+    }
     1 // kCFRunLoopRunFinished
 }
 

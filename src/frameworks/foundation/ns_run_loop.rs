@@ -8,7 +8,7 @@
 //! Resources:
 //! - Apple's [Threading Programming Guide](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Multithreading/Introduction/Introduction.html)
 
-use super::{ns_string, ns_timer, NSComparisonResult, NSOrderedAscending};
+use super::{ns_string, ns_timer, NSTimeInterval};
 use crate::dyld::{ConstantExports, HostConstant};
 use crate::environment::ThreadId;
 use crate::frameworks::audio_toolbox::audio_queue::{handle_audio_queue, AudioQueueRef};
@@ -18,9 +18,9 @@ use crate::frameworks::core_foundation::cf_run_loop::{
 };
 use crate::frameworks::{core_animation, media_player, uikit};
 use crate::objc::{id, msg, objc_classes, release, retain, Class, ClassExports, HostObject};
-use crate::{msg_class, Environment};
+use crate::Environment;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 /// `NSString*`
 pub type NSRunLoopMode = id;
@@ -107,18 +107,14 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (())run {
-    run_run_loop(env, this, /* single_iteration: */ false);
+    run_run_loop(env, this, /* single_iteration: */ false, None);
 }
-- (())runUntilDate:(id)date { // NSDate *
-    let now: id = msg_class![env; NSDate date];
-    let comp: NSComparisonResult = msg![env; date compare:now];
-    if comp == NSOrderedAscending {
-        // Limit date is in the past, run loop once and return
-        run_run_loop(env, this, /* single_iteration: */ true);
-        return;
-    }
-    todo!("Properly account the limit date")
+
+- (())runUntilDate:(id)date {
+    let time_limit: NSTimeInterval = msg![env; date timeIntervalSince1970];
+    run_run_loop(env, this, /* single_iteration: */ false, Some(time_limit));
 }
+
 // TODO: other run methods
 
 @end
@@ -185,17 +181,30 @@ pub(super) fn remove_timer(env: &mut Environment, run_loop: id, timer: id) {
 }
 
 /// Run the run loop for just a single iteration. This is a special mode just
-/// for the app picker, since we don't have `runMode:beforeDate:` or
-/// `runUntilDate:` yet. (TODO: implement those to replace this.)
+/// for the app picker, since we don't have `runMode:beforeDate:` yet.
+/// (TODO: implement those to replace this.)
 pub fn run_run_loop_single_iteration(env: &mut Environment, run_loop: id) {
-    run_run_loop(env, run_loop, /* single_iteration: */ true)
+    run_run_loop(env, run_loop, /* single_iteration: */ true, None)
 }
 
-fn run_run_loop(env: &mut Environment, run_loop: id, single_iteration: bool) {
+pub fn run_run_loop(
+    env: &mut Environment,
+    run_loop: id,
+    single_iteration: bool,
+    unix_time_limit: Option<f64>,
+) {
     if single_iteration {
-        log_dbg!("Entering run loop {:?} (single iteration)", run_loop);
+        log_dbg!(
+            "Entering run loop {:?} (single iteration), limit {:?}",
+            run_loop,
+            unix_time_limit
+        );
     } else {
-        log_dbg!("Entering run loop {:?} (indefinitely)", run_loop);
+        log_dbg!(
+            "Entering run loop {:?} (indefinitely), limit {:?}",
+            run_loop,
+            unix_time_limit
+        );
     }
 
     if env.objc.borrow::<NSRunLoopHostObject>(run_loop).is_running {
@@ -310,6 +319,21 @@ fn run_run_loop(env: &mut Environment, run_loop: id, single_iteration: bool) {
 
         if single_iteration {
             break;
+        }
+
+        if let Some(limit) = unix_time_limit {
+            // We use Unix epoch as a convenience reference date.
+            // (Apple's epoch is less convenient in Rust. And "pure"
+            // Rust approach with Duration/Instant is just too troublesome
+            // and not worthy to convert back and forth)
+            if SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64()
+                >= limit
+            {
+                break;
+            }
         }
     }
 
