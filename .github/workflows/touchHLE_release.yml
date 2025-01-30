@@ -51,11 +51,11 @@ jobs:
         run: cargo build --target x86_64-apple-darwin --release
       - name: Create .app bundle
         run: cd dev-scripts && ./make-macos-bundle.sh ../target/x86_64-apple-darwin/release/touchHLE && mkdir touchHLE-dmg-src && mv touchHLE.app touchHLE-dmg-src/ && hdiutil create -volname touchHLE -srcfolder touchHLE-dmg-src touchHLE.dmg && mv touchHLE.dmg ..
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: touchHLE_macOS_x86_64
           path: touchHLE.dmg
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: TestApp_built_on_macOS
           path: tests/TestApp.app
@@ -132,7 +132,7 @@ jobs:
       env:
         # The version should match the ndkVersion defined in `android\app\build.gradle`
         ANDROID_NDK_ROOT: '/usr/local/lib/android/sdk/ndk/25.2.9519653'
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: touchHLE_Android_AArch64
         path: touchHLE.apk
@@ -185,11 +185,11 @@ jobs:
       run: cargo test
     - name: Build
       run: cargo build --release && move target/release/touchHLE.exe .
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: touchHLE_Windows_x86_64
         path: touchHLE.exe
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: TestApp_built_on_Windows
         path: tests/TestApp.app
