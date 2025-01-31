@@ -165,7 +165,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     release(env, old_font);
     update_scroll(env,this);
     () = msg![env; this setNeedsDisplay];
+}
 
+- (())flashScrollIndicators {
+    // TODO
 }
 
 // TODO: Make editable actually do something
