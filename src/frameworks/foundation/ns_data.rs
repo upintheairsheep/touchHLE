@@ -246,6 +246,16 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 @implementation NSMutableData: NSData
 
++ (id)data {
+    msg![env; this dataWithCapacity:0u32]
+}
+
++ (id)dataWithCapacity:(NSUInteger)capacity {
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new initWithCapacity:capacity];
+    autorelease(env, new)
+}
+
 + (id)dataWithLength:(NSUInteger)length {
     let new: id = msg![env; this alloc];
     let new: id = msg![env; new initWithLength:length];
