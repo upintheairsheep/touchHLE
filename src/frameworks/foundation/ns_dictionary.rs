@@ -648,6 +648,16 @@ pub const CLASSES: ClassExports = objc_classes! {
     mut_dict
 }
 
+- (())setValue:(id)value
+        forKey:(id)key { // NSString *
+    // TODO: assert that key is a string when using key-value coding
+    if value == nil {
+        msg![env; this removeObjectForKey:key]
+    } else {
+        msg![env; this setObject:value forKey:key]
+    }
+}
+
 - (())setObject:(id)object
          forKey:(id)key {
     // TODO: raise NSInvalidArgumentException
