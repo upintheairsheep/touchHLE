@@ -835,8 +835,15 @@ impl GLES for GLES1OnGL2 {
         gl21::ClipPlane(plane, &equation_double as _)
     }
     unsafe fn CullFace(&mut self, mode: GLenum) {
-        assert!([gl21::FRONT, gl21::BACK, gl21::FRONT_AND_BACK].contains(&mode));
-        gl21::CullFace(mode);
+        if mode == gl21::CCW {
+            log_dbg!("Tolerating glCullFace({:#x})", mode);
+        } else {
+            assert!(
+                [gl21::FRONT, gl21::BACK, gl21::FRONT_AND_BACK].contains(&mode),
+                "Unexpected glCullFace({:#x})",
+                mode
+            );
+        }
     }
     unsafe fn DepthFunc(&mut self, func: GLenum) {
         assert!([
