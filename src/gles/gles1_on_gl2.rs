@@ -595,10 +595,15 @@ impl GLES for GLES1OnGL2 {
         } else if cap == gl21::PERSPECTIVE_CORRECTION_HINT
             || cap == gl21::SMOOTH
             || cap == gl21::BLEND_EQUATION
+            || cap == gl21::TEXTURE
         {
             log_dbg!("Tolerating glEnable({:#x})", cap);
         } else {
-            assert!(CAPABILITIES.contains(&cap));
+            assert!(
+                CAPABILITIES.contains(&cap),
+                "Unexpected capability for glEnable({:#x})",
+                cap
+            );
         }
         gl21::Enable(cap);
     }
