@@ -288,6 +288,26 @@ fn ldexpf(env: &mut Environment, arg: f32, n: i32) -> f32 {
 
     arg * 2f32.powf(n as _)
 }
+fn frexpf(env: &mut Environment, arg: f32, exp: MutPtr<i32>) -> f32 {
+    if arg == 0.0 {
+        env.mem.write(exp, 0);
+        return 0.0;
+    }
+    if arg < 0.0 {
+        return -frexpf(env, -arg, exp);
+    }
+    let b = arg.log2().floor() as i32 + 1;
+    env.mem.write(exp, b);
+    let frac = arg / 2f32.powi(b);
+    assert!(
+        (0.5..1.0).contains(&frac),
+        "arg {}, b {}, frac {}",
+        arg,
+        b,
+        frac
+    );
+    frac
+}
 
 // Power functions
 // TODO: implement the rest
@@ -457,6 +477,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(exp2f(_)),
     export_c_func!(ldexp(_, _)),
     export_c_func!(ldexpf(_, _)),
+    export_c_func!(frexpf(_, _)),
     // Power functions
     export_c_func!(pow(_, _)),
     export_c_func!(powf(_, _)),

@@ -175,6 +175,7 @@ long int lrint(double);
 long int lrintf(float);
 double ldexp(double, int);
 float ldexpf(float, int);
+float frexpf(float, int *);
 
 // `CFBase.h`
 
@@ -2056,6 +2057,53 @@ int test_maskrune() {
   return 0;
 }
 
+int test_frexpf(void) {
+  int exp_val;
+  float m;
+
+  /* Test 1: 8.0f = 0.5 * 2^4 */
+  m = frexpf(8.0f, &exp_val);
+  if (m != 0.5f || exp_val != 4)
+    return -1;
+
+  /* Test 2: 4.0f = 0.5 * 2^3 */
+  m = frexpf(4.0f, &exp_val);
+  if (m != 0.5f || exp_val != 3)
+    return -2;
+
+  /* Test 3: 0.75f is already normalized: 0.75f * 2^0 = 0.75f */
+  m = frexpf(0.75f, &exp_val);
+  if (m != 0.75f || exp_val != 0)
+    return -3;
+
+  /* Test 4: 1.0f = 0.5 * 2^1 */
+  m = frexpf(1.0f, &exp_val);
+  if (m != 0.5f || exp_val != 1)
+    return -4;
+
+  /* Test 5: 0.125f = 0.5 * 2^-2 */
+  m = frexpf(0.125f, &exp_val);
+  if (m != 0.5f || exp_val != -2)
+    return -5;
+
+  /* Test 6: 0.0f should return 0.0f and exponent 0 */
+  m = frexpf(0.0f, &exp_val);
+  if (m != 0.0f || exp_val != 0)
+    return -6;
+
+  /* Test 7: Negative value, -8.0f = -0.5 * 2^4 */
+  m = frexpf(-8.0f, &exp_val);
+  if (m != -0.5f || exp_val != 4)
+    return -7;
+
+  /* Test 8: -0.0f should be preserved (check with signbit) */
+  m = frexpf(-0.0f, &exp_val);
+  if (m != 0.0f || exp_val != 0)
+    return -8;
+
+  return 0;
+}
+
 // clang-format off
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
@@ -2098,6 +2146,7 @@ struct {
     FUNC_DEF(test_lrint),
     FUNC_DEF(test_ldexp),
     FUNC_DEF(test_maskrune),
+    FUNC_DEF(test_frexpf),
 };
 // clang-format on
 
