@@ -701,7 +701,16 @@ impl GLES for GLES1OnGL2 {
             gl21::POINT_SMOOTH_HINT
         ]
         .contains(&target));
-        assert!([gl21::FASTEST, gl21::NICEST, gl21::DONT_CARE].contains(&mode));
+        if mode == 0x0 {
+            log_dbg!("Tolerating glHint({:#x}, {:#x})", target, mode);
+        } else {
+            assert!(
+                [gl21::FASTEST, gl21::NICEST, gl21::DONT_CARE].contains(&mode),
+                "Unexpected mode in glHint({:#x}, {:#x})",
+                target,
+                mode
+            );
+        }
         gl21::Hint(target, mode);
     }
     unsafe fn Finish(&mut self) {
