@@ -168,6 +168,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+- (EAGLRenderingAPI)API {
+    // TODO: support later API versions
+    kEAGLRenderingAPIOpenGLES1
+}
+
 - (id)sharegroup {
     // We use object itself as the sharegroup.
     // Check initWithAPI:sharegroup: for more info
