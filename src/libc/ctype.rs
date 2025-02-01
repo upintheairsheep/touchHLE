@@ -28,6 +28,14 @@ fn __toupper(_env: &mut Environment, c: i32) -> i32 {
     }
 }
 
+fn __maskrune(env: &mut Environment, rune: i32, mask: u32) -> i32 {
+    // TODO: do not re-create rune table on each call
+    let default_rune_locale_ptr = get_default_rune_locale(&mut env.mem, &mut env.dyld);
+    let rune_locale: RuneLocale = env.mem.read(default_rune_locale_ptr.cast());
+    env.mem.free(default_rune_locale_ptr.cast_mut());
+    (rune_locale.runetype[(rune & 0xFF) as usize] & mask) as i32
+}
+
 #[allow(non_camel_case_types)]
 type darwin_rune_t = wchar_t;
 
@@ -145,5 +153,8 @@ pub const CONSTANTS: ConstantExports = &[(
     HostConstant::Custom(get_default_rune_locale),
 )];
 
-pub const FUNCTIONS: FunctionExports =
-    &[export_c_func!(__tolower(_)), export_c_func!(__toupper(_))];
+pub const FUNCTIONS: FunctionExports = &[
+    export_c_func!(__tolower(_)),
+    export_c_func!(__toupper(_)),
+    export_c_func!(__maskrune(_, _)),
+];

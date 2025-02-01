@@ -150,6 +150,9 @@ int sem_wait(sem_t *);
 #define LC_MESSAGES 6
 char *setlocale(int category, const char *locale);
 
+// <ctype.h>
+int __maskrune(wchar_t, unsigned long);
+
 // <dirent.h>
 typedef struct {
   int _unused;
@@ -1999,6 +2002,60 @@ int test_ldexp() {
   return 0;
 }
 
+// Just for readability, similar to _CTYPE_* constants
+#define MASK_RUNE_ALPHA 0x00100L
+#define MASK_RUNE_CONTROL 0x00200L
+#define MASK_RUNE_DIGIT 0x00400L
+#define MASK_RUNE_GRAPH 0x00800L
+#define MASK_RUNE_LOWER 0x01000L
+#define MASK_RUNE_PUNCT 0x02000L
+#define MASK_RUNE_SPACE 0x04000L
+#define MASK_RUNE_UPPER 0x08000L
+#define MASK_RUNE_XDIGIT 0x10000L
+#define MASK_RUNE_BLANK 0x20000L
+#define MASK_RUNE_PRINT 0x40000L
+
+int test_maskrune() {
+  struct {
+    char c;
+    unsigned long mask;
+    int expected;
+  } test_cases[] = {
+      {'A', MASK_RUNE_ALPHA, 256},    {'A', MASK_RUNE_UPPER, 32768},
+      {'A', MASK_RUNE_GRAPH, 2048},   {'A', MASK_RUNE_LOWER, 0},
+
+      {'z', MASK_RUNE_ALPHA, 256},    {'z', MASK_RUNE_LOWER, 4096},
+      {'z', MASK_RUNE_GRAPH, 2048},   {'z', MASK_RUNE_UPPER, 0},
+
+      {'5', MASK_RUNE_DIGIT, 1024},   {'5', MASK_RUNE_XDIGIT, 65536},
+      {'5', MASK_RUNE_ALPHA, 0},
+
+      {'?', MASK_RUNE_PUNCT, 8192},   {'?', MASK_RUNE_GRAPH, 2048},
+      {'?', MASK_RUNE_PRINT, 262144}, {'?', MASK_RUNE_ALPHA, 0},
+
+      {' ', MASK_RUNE_SPACE, 16384},  {' ', MASK_RUNE_BLANK, 131072},
+      {' ', MASK_RUNE_PRINT, 262144}, {' ', MASK_RUNE_GRAPH, 0},
+
+      {'\n', MASK_RUNE_CONTROL, 512}, {'\n', MASK_RUNE_PRINT, 0},
+      {'\n', MASK_RUNE_GRAPH, 0},
+
+      {'F', MASK_RUNE_XDIGIT, 65536}, {'G', MASK_RUNE_XDIGIT, 0},
+  };
+
+  int num_tests = sizeof(test_cases) / sizeof(test_cases[0]);
+  for (int i = 0; i < num_tests; i++) {
+    char c = test_cases[i].c;
+    unsigned long mask = test_cases[i].mask;
+    int expected = test_cases[i].expected;
+    int result = __maskrune(c, mask);
+
+    if (expected != result) {
+      return -(i + 1);
+    }
+  }
+  return 0;
+}
+
 // clang-format off
 #define FUNC_DEF(func)                                                         \
   { &func, #func }
@@ -2040,6 +2097,7 @@ struct {
     FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_CFTypes),
     FUNC_DEF(test_lrint),
     FUNC_DEF(test_ldexp),
+    FUNC_DEF(test_maskrune),
 };
 // clang-format on
 
