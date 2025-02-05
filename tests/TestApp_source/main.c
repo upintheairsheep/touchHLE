@@ -488,6 +488,12 @@ int test_sscanf() {
   matched = sscanf("09", "%i", &a);
   if (!(matched == 1 && a == 0))
     return -16;
+  matched = sscanf("FF00", "%2x%2x", &a, &b);
+  if (!(matched == 2 && a == 255 && b == 0))
+    return -17;
+  matched = sscanf("aa", "%10x", &a);
+  if (!(matched == 1 && a == 170))
+    return -18;
   return 0;
 }
 

@@ -120,7 +120,7 @@ fn __strcat_chk(
 fn strcspn(env: &mut Environment, s: ConstPtr<u8>, charset: ConstPtr<u8>) -> GuestUSize {
     GenericChar::<u8>::strcspn(env, s, charset)
 }
-fn strncpy(
+pub(super) fn strncpy(
     env: &mut Environment,
     dest: MutPtr<u8>,
     src: ConstPtr<u8>,

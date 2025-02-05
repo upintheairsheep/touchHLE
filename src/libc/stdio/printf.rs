@@ -13,7 +13,7 @@ use crate::libc::errno::set_errno;
 use crate::libc::posix_io::{STDERR_FILENO, STDIN_FILENO, STDOUT_FILENO};
 use crate::libc::stdio::{fwrite, FILE};
 use crate::libc::stdlib::{atof_inner, strtol_inner, strtoul};
-use crate::libc::string::strlen;
+use crate::libc::string::{strlen, strncpy};
 use crate::libc::wchar::wchar_t;
 use crate::mem::{ConstPtr, GuestUSize, Mem, MutPtr, MutVoidPtr, Ptr};
 use crate::objc::{id, msg, nil};
@@ -655,9 +655,9 @@ fn sscanf_common(
             continue;
         }
 
-        let mut max_width: i32 = 0;
+        let mut max_width: u32 = 0;
         while let c @ b'0'..=b'9' = env.mem.read(format + format_char_idx) {
-            max_width = max_width * 10 + (c - b'0') as i32;
+            max_width = max_width * 10 + (c - b'0') as u32;
             format_char_idx += 1;
         }
 
@@ -688,7 +688,7 @@ fn sscanf_common(
                                 match strtol_inner(env, src_ptr.cast_const(), base) {
                                     Ok((val, len)) => {
                                         if max_width > 0 {
-                                            assert_eq!(max_width, len as i32);
+                                            assert_eq!(max_width, len);
                                         }
                                         src_ptr += len;
                                         let c_int_ptr: ConstPtr<i16> = args.next(env);
@@ -724,12 +724,20 @@ fn sscanf_common(
                 }
             }
             b'x' | b'X' => {
+                // TODO: avoid scanning string upfront
                 let c_len: GuestUSize = strlen(env, src_ptr.cast_const());
-                if max_width != 0 {
-                    assert_eq!(c_len, max_width.try_into().unwrap());
-                }
-                let val: u32 = strtoul(env, src_ptr.cast_const(), Ptr::null(), 16);
-                src_ptr += c_len;
+                let (val, len) = if max_width != 0 && max_width < c_len {
+                    assert!(max_width > 0);
+                    // TODO: avoid tmp string allocation
+                    let tmp: MutPtr<u8> = env.mem.alloc(max_width + 1).cast();
+                    _ = strncpy(env, tmp, src_ptr.cast_const(), max_width);
+                    let val: u32 = strtoul(env, tmp.cast_const(), Ptr::null(), 16);
+                    env.mem.free(tmp.cast());
+                    (val, max_width)
+                } else {
+                    (strtoul(env, src_ptr.cast_const(), Ptr::null(), 16), c_len)
+                };
+                src_ptr += len;
                 let c_u32_ptr: ConstPtr<u32> = args.next(env);
                 env.mem.write(c_u32_ptr.cast_mut(), val);
             }
