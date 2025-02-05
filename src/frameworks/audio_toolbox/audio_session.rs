@@ -71,20 +71,23 @@ fn AudioSessionInitialize(
     result
 }
 
+fn AudioSessionGetPropertySize(
+    env: &mut Environment,
+    in_ID: AudioSessionPropertyID,
+    out_data_size: MutPtr<u32>,
+) -> OSStatus {
+    let size = get_audio_session_property_size(in_ID);
+    env.mem.write(out_data_size, size);
+    0 // Success
+}
+
 fn AudioSessionGetProperty(
     env: &mut Environment,
     in_ID: AudioSessionPropertyID,
     io_data_size: MutPtr<u32>,
     out_data: MutVoidPtr,
 ) -> OSStatus {
-    let required_size: GuestUSize = match in_ID {
-        kAudioSessionProperty_OtherAudioIsPlaying => guest_size_of::<u32>(),
-        kAudioSessionProperty_AudioCategory => guest_size_of::<u32>(),
-        kAudioSessionProperty_CurrentHardwareSampleRate => guest_size_of::<f64>(),
-        kAudioSessionProperty_CurrentHardwareOutputNumberChannels => guest_size_of::<u32>(),
-        kAudioSessionProperty_CurrentHardwareOutputVolume => guest_size_of::<f32>(),
-        _ => unimplemented!("Unimplemented property ID: {}", debug_fourcc(in_ID)),
-    };
+    let required_size = get_audio_session_property_size(in_ID);
     let io_data_size_value = env.mem.read(io_data_size);
     if io_data_size_value != required_size {
         log!("Warning: AudioSessionGetProperty() failed");
@@ -194,9 +197,22 @@ fn AudioSessionAddPropertyListener(
     result
 }
 
+/// Helper function to get AudioSession Property size by id
+fn get_audio_session_property_size(in_ID: AudioSessionPropertyID) -> GuestUSize {
+    match in_ID {
+        kAudioSessionProperty_OtherAudioIsPlaying => guest_size_of::<u32>(),
+        kAudioSessionProperty_AudioCategory => guest_size_of::<u32>(),
+        kAudioSessionProperty_CurrentHardwareSampleRate => guest_size_of::<f64>(),
+        kAudioSessionProperty_CurrentHardwareOutputNumberChannels => guest_size_of::<u32>(),
+        kAudioSessionProperty_CurrentHardwareOutputVolume => guest_size_of::<f32>(),
+        _ => unimplemented!("Unimplemented property ID: {}", debug_fourcc(in_ID)),
+    }
+}
+
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(AudioSessionInitialize(_, _, _, _)),
     export_c_func!(AudioSessionGetProperty(_, _, _)),
+    export_c_func!(AudioSessionGetPropertySize(_, _)),
     export_c_func!(AudioSessionSetProperty(_, _, _)),
     export_c_func!(AudioSessionSetActive(_)),
     export_c_func!(AudioSessionAddPropertyListener(_, _, _)),
