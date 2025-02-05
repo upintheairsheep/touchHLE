@@ -394,9 +394,22 @@ pub fn close(env: &mut Environment, fd: FileDescriptor) -> i32 {
     // TODO: handle errno properly
     set_errno(env, 0);
 
-    // TODO: error handling for unknown fd?
-    if fd < 0 || matches!(fd, STDOUT_FILENO | STDERR_FILENO) {
+    if matches!(fd, STDIN_FILENO | STDOUT_FILENO | STDERR_FILENO) {
+        log_dbg!("close({:?}) => 0", fd);
         return 0;
+    }
+
+    if fd < 0
+        || env
+            .libc_state
+            .posix_io
+            .files
+            .get(fd_to_file_idx(fd))
+            .is_none()
+    {
+        set_errno(env, EBADF);
+        log!("Warning: close({:?}) failed, returning -1", fd);
+        return -1;
     }
 
     let result = match env.libc_state.posix_io.files[fd_to_file_idx(fd)].take() {
@@ -424,7 +437,7 @@ pub fn close(env: &mut Environment, fd: FileDescriptor) -> i32 {
             }
         }
         None => {
-            // TODO: set errno
+            set_errno(env, EBADF);
             -1
         }
     };

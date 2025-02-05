@@ -1230,6 +1230,16 @@ int test_open() {
   return 0;
 }
 
+int test_close() {
+  if (close(0) != 0)
+    return -1;
+  if (close(-1) == 0)
+    return -2;
+  if (close(1000) == 0)
+    return -3;
+  return 0;
+}
+
 int test_CFMutableDictionary_NullCallbacks() {
   CFMutableDictionaryRef dict = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
   if (dict == NULL) {
@@ -2175,6 +2185,7 @@ struct {
     FUNC_DEF(test_CFMutableString),
     FUNC_DEF(test_fwrite),
     FUNC_DEF(test_open),
+    FUNC_DEF(test_close),
     FUNC_DEF(test_cond_var),
     FUNC_DEF(test_CFMutableDictionary_NullCallbacks),
     FUNC_DEF(test_CFMutableDictionary_CustomCallbacks_PrimitiveTypes),
