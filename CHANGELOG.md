@@ -38,8 +38,14 @@ Compatibility:
   - [Tom Clancy's Splinter Cell: Conviction](https://appdb.touchhle.org/apps/416) (@ciciplusplus)
   - [Assassin's Creed](https://appdb.touchhle.org/apps/413) (@ciciplusplus)
   - [N.O.V.A. Near Orbit Vanguard Alliance](https://appdb.touchhle.org/apps/443) (@ciciplusplus)
+  - [Brothers in Arms 2: Global Front](https://appdb.touchhle.org/apps/464) (@ciciplusplus)
+  - [Ferrari GT: Evolution](https://appdb.touchhle.org/apps/116) (@ciciplusplus)
+  - [Castle Frenzy](https://appdb.touchhle.org/apps/463) (@ciciplusplus)
+  - [Hero of Sparta 2](https://appdb.touchhle.org/apps/453) (@ciciplusplus)
+  - [Hero of Sparta](https://appdb.touchhle.org/apps/452) (@ciciplusplus)
+  - [Bridge Odyssey](https://appdb.touchhle.org/apps/465) (@ciciplusplus)
 - API support improvements:
-  - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @abnormalmaps, @hujerhoe, @acieslewicz)
+  - Various small contributions. (@hikari-no-yume, @alborrajo, @ciciplusplus, @atasro2, @abnormalmaps, @hujerhoe, @acieslewicz, @WhatAmISupposedToPutHere)
   - UITextField now supports real text input with a keyboard. On Windows/macOS physical keyboard is used, on Android it's done via a system soft keyboard. (@ciciplusplus)
   - UIScrollView and UITextView partial implementations. (@Skryptonyte, @ciciplusplus)
 
@@ -56,6 +62,7 @@ Usability:
 Quality:
 
 - Fix problem with non-working accelerometer on some Android phones. (@Oscar1640)
+- Fix multi-touch in some games. (@ciciplusplus)
 
 Other:
 
