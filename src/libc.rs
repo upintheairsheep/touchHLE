@@ -58,4 +58,5 @@ pub struct State {
     time: time::State,
     errno: errno::State,
     clocale: clocale::State,
+    mmap: mmap::State,
 }
