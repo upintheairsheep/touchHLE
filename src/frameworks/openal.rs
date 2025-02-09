@@ -20,7 +20,9 @@ use crate::mem::{ConstPtr, ConstVoidPtr, GuestUSize, MutPtr, MutVoidPtr, Ptr, Sa
 use crate::Environment;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
-use touchHLE_openal_soft_wrapper::ALC_DEVICE_SPECIFIER;
+use touchHLE_openal_soft_wrapper::{
+    ALC_DEVICE_SPECIFIER, ALC_FREQUENCY, ALC_MONO_SOURCES, ALC_STEREO_SOURCES,
+};
 
 #[derive(Default)]
 pub struct State {
@@ -97,16 +99,38 @@ fn alcGetString(
     env.mem.alloc_and_write_cstr(s.to_bytes()).cast_const()
 }
 
+const ALLOWED_CONTEXT_ATTRIBUTES: [ALCint; 3] =
+    [ALC_FREQUENCY, ALC_MONO_SOURCES, ALC_STEREO_SOURCES];
+
 fn alcCreateContext(
     env: &mut Environment,
     device: MutPtr<GuestALCdevice>,
-    attrlist: ConstPtr<i32>,
+    attr_list: ConstPtr<i32>,
 ) -> MutPtr<GuestALCcontext> {
-    assert!(attrlist.is_null()); // unimplemented
+    let attr_list_ptr: *const ALCint = if attr_list.is_null() {
+        std::ptr::null()
+    } else {
+        let mut ptr: MutPtr<i32> = attr_list.cast_mut();
+        // attribute list is NULL terminated
+        while env.mem.read(ptr) != 0 {
+            let attr = env.mem.read(ptr);
+            log_dbg!(
+                "alcCreateContext attribute {:#x} => {}",
+                attr,
+                env.mem.read(ptr + 1)
+            );
+            assert!(ALLOWED_CONTEXT_ATTRIBUTES.contains(&attr)); // TODO
+            ptr += 2;
+        }
+
+        let list_size = Ptr::to_bits(ptr) - Ptr::to_bits(attr_list);
+        let attr_list_slice = env.mem.bytes_at(attr_list.cast(), list_size);
+        attr_list_slice.as_ptr() as *const _
+    };
 
     let &host_device = State::get(env).devices.get(&device).unwrap();
 
-    let res = unsafe { al::alcCreateContext(host_device, std::ptr::null()) };
+    let res = unsafe { al::alcCreateContext(host_device, attr_list_ptr) };
     if res.is_null() {
         log_dbg!("alcCreateContext({:?}, NULL) returned NULL", device);
         return Ptr::null();

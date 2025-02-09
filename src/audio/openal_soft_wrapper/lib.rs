@@ -50,6 +50,11 @@ pub const ALC_TRUE: ALCboolean = 1;
 
 pub const ALC_DEVICE_SPECIFIER: ALCenum = 0x1005;
 
+// Context attributes
+pub const ALC_FREQUENCY: ALCint = 0x1007;
+pub const ALC_MONO_SOURCES: ALCint = 0x1010;
+pub const ALC_STEREO_SOURCES: ALCint = 0x1011;
+
 extern "C" {
     pub fn alcOpenDevice(devicename: *const ALCchar) -> *mut ALCdevice;
     pub fn alcCloseDevice(device: *mut ALCdevice) -> ALCboolean;
