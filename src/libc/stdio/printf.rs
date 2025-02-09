@@ -130,7 +130,9 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
 
         if precision.is_some() {
             assert!(
-                INTEGER_SPECIFIERS.contains(&specifier) || FLOAT_SPECIFIERS.contains(&specifier)
+                INTEGER_SPECIFIERS.contains(&specifier)
+                    || FLOAT_SPECIFIERS.contains(&specifier)
+                    || specifier == b's'
             )
         }
 
@@ -160,8 +162,16 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
                 let c_string: ConstPtr<u8> = args.next(env);
                 assert!(pad_char == ' ' && pad_width == 0); // TODO
                 if !c_string.is_null() {
-                    res.extend_from_slice(env.mem.cstr_at(c_string));
+                    if let Some(precision) = precision {
+                        let str_len = strlen(env, c_string);
+                        res.extend_from_slice(
+                            env.mem.bytes_at(c_string, str_len.min(precision as _)),
+                        )
+                    } else {
+                        res.extend_from_slice(env.mem.cstr_at(c_string));
+                    }
                 } else {
+                    assert!(precision.is_none());
                     res.extend_from_slice("(null)".as_bytes());
                 }
             }

@@ -434,6 +434,11 @@ int test_vsnprintf() {
   res += !!strcmp(str,
                   "10 100 4294967296 4294967296 10 100 4294967296 4294967296");
   free(str);
+  // Test %.50s with a long string
+  str = str_format("%.50s",
+                   "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ");
+  res += !!strcmp(str, "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWX");
+  free(str);
 
   return res;
 }
