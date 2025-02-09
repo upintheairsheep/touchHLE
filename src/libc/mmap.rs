@@ -7,7 +7,7 @@
 use crate::dyld::FunctionExports;
 use crate::environment::Environment;
 use crate::export_c_func;
-use crate::libc::errno::set_errno;
+use crate::libc::errno::{set_errno, EINVAL};
 use crate::libc::posix_io;
 use crate::libc::posix_io::{off_t, FileDescriptor, SEEK_SET};
 use crate::mem::{GuestUSize, MutVoidPtr};
@@ -60,7 +60,12 @@ fn munmap(env: &mut Environment, addr: MutVoidPtr, len: GuestUSize) -> i32 {
 
     log_dbg!("munmap len {}", len);
 
-    assert!(len > 0);
+    if len == 0 {
+        set_errno(env, EINVAL);
+        // TODO: should we clear allocations for `addr` here too?
+        log!("Warning: munmap({:?}, {}) failed, returning -1", addr, len);
+        return -1;
+    }
     assert_eq!(*env.libc_state.mmap.allocations.get(&addr).unwrap(), len);
     env.mem.free(addr);
     env.libc_state.mmap.allocations.remove(&addr);
