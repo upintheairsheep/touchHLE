@@ -77,6 +77,22 @@ impl DictionaryHostObject {
         collisions.push((key, value));
         self.count += 1;
     }
+    pub(super) fn remove(&mut self, env: &mut Environment, key: id) {
+        let hash: Hash = msg![env; key hash];
+        let Some(collisions) = self.map.get_mut(&hash) else {
+            return;
+        };
+        let Some(idx) = collisions.iter().position(|&(candidate_key, _)| {
+            candidate_key == key || msg![env; candidate_key isEqual:key]
+        }) else {
+            return;
+        };
+        let (existing_key, value) = collisions[idx];
+        release(env, existing_key);
+        release(env, value);
+        collisions.remove(idx);
+        self.count -= 1;
+    }
     pub(super) fn release(&mut self, env: &mut Environment) {
         for collisions in self.map.values() {
             for &(key, value) in collisions {
@@ -666,6 +682,13 @@ pub const CLASSES: ClassExports = objc_classes! {
     assert_ne!(key, nil);
     let mut host_obj: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
     host_obj.insert(env, key, object, /* copy_key: */ true);
+    *env.objc.borrow_mut(this) = host_obj;
+}
+
+- (())removeObjectForKey:(id)key {
+    assert!(!key.is_null());
+    let mut host_obj: DictionaryHostObject = std::mem::take(env.objc.borrow_mut(this));
+    host_obj.remove(env, key);
     *env.objc.borrow_mut(this) = host_obj;
 }
 
