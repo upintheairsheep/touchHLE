@@ -21,6 +21,7 @@ macro_rules! impl_AsValue {
                 // Cast to u8 is needed for float conversions
                 NSNumberHostObject::Bool(x) => *x as u8 as _,
                 NSNumberHostObject::UnsignedLongLong(x) => *x as _,
+                NSNumberHostObject::UnsignedInt(x) => *x as _,
                 NSNumberHostObject::Int(x) => *x as _,
                 NSNumberHostObject::LongLong(x) => *x as _,
                 NSNumberHostObject::Float(x) => *x as _,
@@ -34,6 +35,7 @@ macro_rules! impl_AsValue {
 pub(super) enum NSNumberHostObject {
     Bool(bool),
     UnsignedLongLong(u64),
+    UnsignedInt(u32),
     Int(i32), // Also covers Integer since this is a 32 bit platform.
     LongLong(i64),
     Float(f32),
@@ -46,6 +48,7 @@ impl NSNumberHostObject {
         match self {
             NSNumberHostObject::Bool(x) => *x,
             NSNumberHostObject::UnsignedLongLong(x) => *x != 0,
+            NSNumberHostObject::UnsignedInt(x) => *x != 0,
             NSNumberHostObject::Int(x) => *x != 0,
             NSNumberHostObject::LongLong(x) => *x != 0,
             NSNumberHostObject::Float(x) => *x != 0.0,
@@ -107,6 +110,14 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, new)
 }
 
++ (id)numberWithUnsignedInt:(u32)value {
+    // TODO: for greater efficiency we could return a static-lifetime value
+
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new initWithUnsignedInt:value];
+    autorelease(env, new)
+}
+
 + (id)numberWithInt:(i32)value {
     // TODO: for greater efficiency we could return a static-lifetime value
 
@@ -161,6 +172,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     this
 }
 
+- (id)initWithUnsignedInt:(u32)value {
+    *env.objc.borrow_mut(this) = NSNumberHostObject::UnsignedInt(value);
+    this
+}
+
 - (id)initWithInt:(i32)value {
     *env.objc.borrow_mut(this) = NSNumberHostObject::Int(value);
     this
@@ -209,10 +225,15 @@ pub const CLASSES: ClassExports = objc_classes! {
     env.objc.borrow::<NSNumberHostObject>(this).as_unsigned_int()
 }
 
+- (NSUInteger)unsignedIntegerValue {
+    env.objc.borrow::<NSNumberHostObject>(this).as_unsigned_int()
+}
+
 - (id)description {
     let desc = match env.objc.borrow(this) {
         NSNumberHostObject::Bool(value) => from_rust_string(env, (*value as i32).to_string()),
         NSNumberHostObject::UnsignedLongLong(value) => from_rust_string(env, value.to_string()),
+        NSNumberHostObject::UnsignedInt(value) => from_rust_string(env, value.to_string()),
         NSNumberHostObject::Int(value) => from_rust_string(env, value.to_string()),
         NSNumberHostObject::LongLong(value) => from_rust_string(env, value.to_string()),
         NSNumberHostObject::Float(value) => from_rust_string(env, value.to_string()),
@@ -229,6 +250,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     match env.objc.borrow(this) {
         NSNumberHostObject::Bool(value) => *value as u64,
         NSNumberHostObject::UnsignedLongLong(value) => *value,
+        NSNumberHostObject::UnsignedInt(value) => *value as u64,
         NSNumberHostObject::Int(value) => *value as u64,
         NSNumberHostObject::LongLong(value) => *value as u64,
         NSNumberHostObject::Float(value) => value.to_bits() as u64,
@@ -255,15 +277,21 @@ fn equality_helper(env: &mut Environment, this: id, other: id) -> bool {
     if !msg![env; other isKindOfClass:class] {
         return false;
     }
-    match (env.objc.borrow(this), env.objc.borrow(other)) {
+    let (left, right) = (env.objc.borrow(this), env.objc.borrow(other));
+    match (left, right) {
         (&NSNumberHostObject::Bool(a), &NSNumberHostObject::Bool(b)) => a == b,
         (&NSNumberHostObject::UnsignedLongLong(a), &NSNumberHostObject::UnsignedLongLong(b)) => {
             a == b
         }
+        (&NSNumberHostObject::UnsignedInt(a), &NSNumberHostObject::UnsignedInt(b)) => a == b,
         (&NSNumberHostObject::Int(a), &NSNumberHostObject::Int(b)) => a == b,
         (&NSNumberHostObject::LongLong(a), &NSNumberHostObject::LongLong(b)) => a == b,
         (&NSNumberHostObject::Float(a), &NSNumberHostObject::Float(b)) => a == b,
         (&NSNumberHostObject::Double(a), &NSNumberHostObject::Double(b)) => a == b,
-        _ => todo!("Implement NSNumber comparisions of different types"),
+        _ => todo!(
+            "Implement NSNumber comparisons of different types: {:?} vs {:?}",
+            left,
+            right
+        ),
     }
 }
