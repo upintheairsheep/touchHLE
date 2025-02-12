@@ -51,10 +51,19 @@ impl SafeWrite for GuestALCcontext {}
 fn alcOpenDevice(env: &mut Environment, devicename: ConstPtr<u8>) -> MutPtr<GuestALCdevice> {
     if !devicename.is_null() {
         // If device name name is not null, we check if it's the one which was
-        // obtained from a call to alcGetString(NULL, ALC_DEVICE_SPECIFIER)
+        // obtained from a call to alcGetString(NULL, ALC_DEVICE_SPECIFIER).
+        // And if not, we return NULL.
 
         let d_name = alcGetString(env, Ptr::null(), ALC_DEVICE_SPECIFIER);
-        assert_eq!(strcmp(env, d_name, devicename), 0);
+        if strcmp(env, d_name, devicename) != 0 {
+            log!(
+                "Unsupported device name {:?}, supported is {:?}. Returning NULL",
+                env.mem.cstr_at_utf8(devicename),
+                env.mem.cstr_at_utf8(d_name)
+            );
+            env.mem.free(d_name.cast_mut().cast());
+            return Ptr::null();
+        }
         env.mem.free(d_name.cast_mut().cast());
     }
 
