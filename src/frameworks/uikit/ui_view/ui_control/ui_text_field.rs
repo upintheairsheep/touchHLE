@@ -11,7 +11,7 @@
 use sdl2_sys::{SDL_StartTextInput, SDL_StopTextInput};
 
 use crate::dyld::{ConstantExports, HostConstant};
-use crate::frameworks::core_graphics::{CGRect,CGPoint};
+use crate::frameworks::core_graphics::{CGPoint, CGRect};
 use crate::frameworks::foundation::ns_string::to_rust_string;
 use crate::frameworks::foundation::{ns_string, NSInteger, NSRange, NSUInteger};
 use crate::frameworks::uikit::ui_font::UITextAlignmentLeft;
