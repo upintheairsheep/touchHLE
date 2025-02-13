@@ -7,6 +7,7 @@
 
 use crate::abi::{CallFromHost, GuestFunction};
 use crate::audio; // Keep this module namespaced to avoid confusion
+use crate::audio::AudioDescription;
 use crate::dyld::{export_c_func, FunctionExports};
 use crate::frameworks::carbon_core::{eofErr, OSStatus};
 use crate::frameworks::core_audio_types::{
@@ -64,6 +65,7 @@ const kAudioFilePropertyAudioDataPacketCount: AudioFilePropertyID = fourcc(b"pcn
 pub const kAudioFilePropertyPacketSizeUpperBound: AudioFilePropertyID = fourcc(b"pkub");
 const kAudioFilePropertyMagicCookieData: AudioFilePropertyID = fourcc(b"mgic");
 const kAudioFilePropertyChannelLayout: AudioFilePropertyID = fourcc(b"cmap");
+const kAudioFilePropertyEstimatedDuration: AudioFilePropertyID = fourcc(b"edur");
 
 pub fn AudioFileOpenURL(
     env: &mut Environment,
@@ -223,6 +225,7 @@ fn property_size(property_id: AudioFilePropertyID) -> GuestUSize {
         kAudioFilePropertyAudioDataByteCount => guest_size_of::<u64>(),
         kAudioFilePropertyAudioDataPacketCount => guest_size_of::<u64>(),
         kAudioFilePropertyPacketSizeUpperBound => guest_size_of::<u32>(),
+        kAudioFilePropertyEstimatedDuration => guest_size_of::<f64>(),
         _ => unimplemented!("Unimplemented property ID: {}", debug_fourcc(property_id)),
     }
 }
@@ -342,6 +345,19 @@ pub fn AudioFileGetProperty(
             let packet_size_upper_bound: u32 = host_object.audio_file.packet_size_upper_bound();
             env.mem
                 .write(out_property_data.cast(), packet_size_upper_bound);
+        }
+        kAudioFilePropertyEstimatedDuration => {
+            let AudioDescription {
+                sample_rate,
+                bytes_per_packet,
+                frames_per_packet,
+                ..
+            } = host_object.audio_file.audio_description();
+            assert!(bytes_per_packet != 0);
+            let estimated_duration: f64 = host_object.audio_file.byte_count() as f64
+                * frames_per_packet as f64
+                / (bytes_per_packet as f64 * sample_rate);
+            env.mem.write(out_property_data.cast(), estimated_duration);
         }
         _ => unreachable!(),
     }
