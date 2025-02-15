@@ -285,6 +285,9 @@ pub const CLASSES: ClassExports = objc_classes! {
     () = msg_super![env; this setHighlighted:highlighted];
     update(env, this);
 }
+- (())setAdjustsImageWhenHighlighted:(bool)adjusts {
+    log!("TODO: [(UIButton*){:?} setAdjustsImageWhenHighlighted:{}]", this, adjusts);
+}
 - (())setShowsTouchWhenHighlighted:(bool)shows {
     log!("TODO: [(UIButton*){:?} setShowsTouchWhenHighlighted:{}]", this, shows);
 }
