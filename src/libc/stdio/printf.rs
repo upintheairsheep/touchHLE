@@ -474,6 +474,9 @@ fn vsnprintf(
     );
 
     let res = printf_inner::<false, _>(env, |mem, idx| mem.read(format + idx), arg);
+    if n == 0 {
+        return res.len().try_into().unwrap();
+    }
     let middle = if ((n - 1) as usize) < res.len() {
         &res[..(n - 1) as usize]
     } else {
