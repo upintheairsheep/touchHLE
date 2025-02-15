@@ -36,6 +36,10 @@ fn malloc(env: &mut Environment, size: GuestUSize) -> MutVoidPtr {
     env.mem.alloc(size)
 }
 
+fn malloc_size(env: &mut Environment, ptr: ConstVoidPtr) -> GuestUSize {
+    env.mem.malloc_size(ptr)
+}
+
 fn calloc(env: &mut Environment, count: GuestUSize, size: GuestUSize) -> MutVoidPtr {
     // TODO: handle errno properly
     set_errno(env, 0);
@@ -400,6 +404,7 @@ fn wcstombs(
 
 pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(malloc(_)),
+    export_c_func!(malloc_size(_)),
     export_c_func!(calloc(_, _)),
     export_c_func!(realloc(_, _)),
     export_c_func!(free(_)),

@@ -529,6 +529,10 @@ impl Mem {
         ptr
     }
 
+    pub fn malloc_size(&mut self, ptr: ConstVoidPtr) -> GuestUSize {
+        self.allocator.find_allocated_size(ptr.to_bits())
+    }
+
     pub fn realloc(&mut self, old_ptr: MutVoidPtr, size: GuestUSize) -> MutVoidPtr {
         if old_ptr.is_null() {
             return self.alloc(size);
