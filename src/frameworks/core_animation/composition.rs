@@ -205,6 +205,14 @@ pub fn recomposite_if_necessary(env: &mut Environment) -> Option<Instant> {
         gles.Enable(gles11::SCISSOR_TEST);
         gles.Scissor(0, 0, fb_width as _, fb_height as _);
         gles.Color4f(1.0, 1.0, 1.0, 1.0);
+
+        // Everything drawn later will be this same quad.
+        gles.BindBuffer(gles11::ARRAY_BUFFER, 0);
+        let vertices: [f32; 12] = [
+            -1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
+        ];
+        gles.EnableClientState(gles11::VERTEX_ARRAY);
+        gles.VertexPointer(2, gles11::FLOAT, 0, vertices.as_ptr() as *const GLvoid);
     }
 
     // Here's where the actual drawing happens
@@ -407,13 +415,6 @@ unsafe fn composite_layer_recursive(
         let (x, y, w, h) = gl_rect_from_cg_rect(absolute_frame_clipped, scale_hack, fb_height);
         gles.Scissor(x, y, w, h);
         gles.Viewport(x, y, w, h);
-
-        gles.BindBuffer(gles11::ARRAY_BUFFER, 0);
-        let vertices: [f32; 12] = [
-            -1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
-        ];
-        gles.EnableClientState(gles11::VERTEX_ARRAY);
-        gles.VertexPointer(2, gles11::FLOAT, 0, vertices.as_ptr() as *const GLvoid);
 
         // Normal images will have top-to-bottom row order, but OpenGL ES
         // expects bottom-to-top, so flip the UVs in that case.
