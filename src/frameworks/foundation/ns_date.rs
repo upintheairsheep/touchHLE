@@ -93,11 +93,8 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 + (id)dateWithTimeInterval:(NSTimeInterval)secs
                  sinceDate:(id)date { // NSDate *
-    let time_interval = env.objc.borrow_mut::<NSDateHostObject>(date).time_interval + secs;
-    let host_object = Box::new(NSDateHostObject {
-        time_interval
-    });
-    let new = env.objc.alloc_object(this, host_object, &mut env.mem);
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new initWithTimeInterval:secs sinceDate:date];
     autorelease(env, new)
 }
 
@@ -108,6 +105,13 @@ pub const CLASSES: ClassExports = objc_classes! {
         .duration_since(apple_epoch())
         .unwrap()
         .as_secs_f64();
+    env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = time_interval;
+    this
+}
+
+- (id)initWithTimeInterval:(NSTimeInterval)secs
+                 sinceDate:(id)date { // NSDate *
+    let time_interval = env.objc.borrow_mut::<NSDateHostObject>(date).time_interval + secs;
     env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = time_interval;
     this
 }
