@@ -12,12 +12,13 @@
 use super::ca_eagl_layer::find_fullscreen_eagl_layer;
 use super::ca_layer::CALayerHostObject;
 use crate::frameworks::core_graphics::{
-    cg_bitmap_context, cg_color, cg_image, CGFloat, CGPoint, CGRect, CGSize,
+    cg_bitmap_context, cg_color, cg_image, CGFloat, CGPoint, CGRect,
 };
 use crate::gles::gles11_raw as gles11; // constants only
 use crate::gles::gles11_raw::types::*;
 use crate::gles::present::{present_frame, FpsCounter};
 use crate::gles::GLES;
+use crate::matrix::Matrix;
 use crate::mem::Mem;
 use crate::objc::{id, msg, msg_class, nil, ObjC};
 use crate::Environment;
@@ -28,6 +29,10 @@ pub(super) struct State {
     texture_framebuffer: Option<(GLuint, GLuint)>,
     recomposite_next: Option<Instant>,
     fps_counter: Option<FpsCounter>,
+}
+
+unsafe fn load_matrix(gles: &mut dyn GLES, matrix: Matrix<4>) {
+    gles.LoadMatrixf(matrix.columns().as_ptr() as *const _);
 }
 
 /// For use by `NSRunLoop`: call this 60 times per second. Composites the app's
@@ -124,10 +129,6 @@ pub fn recomposite_if_necessary(env: &mut Environment) -> Option<Instant> {
 
     // Initial state for layer tree traversal (see composite_layer_recursive)
     let origin = CGPoint { x: 0.0, y: 0.0 };
-    let clip_to = CGRect {
-        origin,
-        size: screen_bounds.size,
-    };
     let opacity = 1.0;
 
     let window = env.window.as_mut().unwrap();
@@ -202,40 +203,46 @@ pub fn recomposite_if_necessary(env: &mut Environment) -> Option<Instant> {
         gles.Viewport(0, 0, fb_width as _, fb_height as _);
         gles.ClearColor(0.0, 0.0, 0.0, 1.0);
         gles.Clear(gles11::COLOR_BUFFER_BIT);
-        gles.Enable(gles11::SCISSOR_TEST);
-        gles.Scissor(0, 0, fb_width as _, fb_height as _);
         gles.Color4f(1.0, 1.0, 1.0, 1.0);
 
-        // Everything drawn later will be this same quad.
+        // Everything drawn later will be this same unit-square quad.
         gles.BindBuffer(gles11::ARRAY_BUFFER, 0);
-        let vertices: [f32; 12] = [
-            -1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
-        ];
+        let vertices: [f32; 12] = [0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0];
         gles.EnableClientState(gles11::VERTEX_ARRAY);
         gles.VertexPointer(2, gles11::FLOAT, 0, vertices.as_ptr() as *const GLvoid);
+
+        gles.MatrixMode(gles11::PROJECTION);
+        // Scale down screen-space to normalized device co-ordinates, shift the
+        // origin to be at the top-left rather than the center, and flip the
+        // Y axis (OpenGL's points up, Core Animation's points down).
+        // Using the projection matrix for this is more convenient than adding
+        // an extra multiply to composite_layer_recursive.
+        load_matrix(
+            gles,
+            Matrix::from(&Matrix::scale_2d(
+                2.0 / fb_width as f32,
+                -2.0 / fb_height as f32,
+            ))
+            .multiply(&Matrix::translate_3d(-1.0, 1.0, 0.0)),
+        );
+        gles.MatrixMode(gles11::MODELVIEW);
+        gles.LoadIdentity();
     }
 
     // Here's where the actual drawing happens
     unsafe {
-        composite_layer_recursive(
-            gles,
-            &mut env.objc,
-            &env.mem,
-            root_layer,
-            origin,
-            clip_to,
-            opacity,
-            scale_hack,
-            fb_height,
-        );
+        composite_layer_recursive(gles, &mut env.objc, &env.mem, root_layer, origin, opacity);
     }
 
     // Clean up some GL state
     unsafe {
         gles.Viewport(0, 0, fb_width as _, fb_height as _);
-        gles.Disable(gles11::SCISSOR_TEST);
         gles.Color4f(1.0, 1.0, 1.0, 1.0);
         gles.Disable(gles11::BLEND);
+        gles.MatrixMode(gles11::PROJECTION);
+        gles.LoadIdentity();
+        gles.MatrixMode(gles11::MODELVIEW);
+        gles.LoadIdentity();
         assert_eq!(gles.GetError(), 0);
     }
 
@@ -289,10 +296,7 @@ unsafe fn composite_layer_recursive(
     mem: &Mem,
     layer: id,
     origin: CGPoint,
-    clip_to: CGRect,
     opacity: CGFloat,
-    scale_hack: u32,
-    fb_height: u32,
 ) {
     // TODO: this can't handle zPosition, non-AABB layer transforms, rounded
     // corners, and many other things, but none of these are supported yet :)
@@ -305,35 +309,47 @@ unsafe fn composite_layer_recursive(
     }
 
     let opacity = opacity * host_obj.opacity;
-    let bounds = host_obj.bounds;
-    let absolute_frame = {
-        let position = host_obj.position;
-        let anchor_point = host_obj.anchor_point;
-        CGRect {
-            origin: CGPoint {
-                x: origin.x + position.x - bounds.size.width * anchor_point.x,
-                y: origin.y + position.y - bounds.size.height * anchor_point.y,
-            },
-            size: bounds.size,
-        }
+    let next_origin = {
+        let &CALayerHostObject {
+            bounds,
+            position,
+            anchor_point,
+            ..
+        } = host_obj;
+
+        let absolute_pos_top_left = CGPoint {
+            x: origin.x + position.x - bounds.size.width * anchor_point.x,
+            y: origin.y + position.y - bounds.size.height * anchor_point.y,
+        };
+        let next_origin = CGPoint {
+            x: absolute_pos_top_left.x - bounds.origin.x,
+            y: absolute_pos_top_left.y - bounds.origin.y,
+        };
+
+        // Reposition and scale the unit quad (see ARRAY_BUFFER binding).
+        let matrix = {
+            let scale = Matrix::<4>::from(&Matrix::scale_2d(bounds.size.width, bounds.size.height));
+            let position =
+                Matrix::translate_3d(absolute_pos_top_left.x, absolute_pos_top_left.y, 0.0);
+            scale.multiply(&position)
+        };
+        gles.MatrixMode(gles11::MODELVIEW);
+        load_matrix(gles, matrix);
+
+        next_origin
     };
-    let absolute_frame_clipped = clip_rects(clip_to, absolute_frame);
 
     // Draw background color, if any
     let have_background = if host_obj.background_color == nil {
         false
     } else {
         let (r, g, b, a) = cg_color::to_rgba(objc, host_obj.background_color);
-        // TODO: fully support alpha transparency for backgrounds
-        if a == 0.0 || opacity == 0.0 {
-            false
-        } else {
-            gles.ClearColor(r * opacity, g * opacity, b * opacity, a * opacity);
-            let (x, y, w, h) = gl_rect_from_cg_rect(absolute_frame_clipped, scale_hack, fb_height);
-            gles.Scissor(x, y, w, h);
-            gles.Clear(gles11::COLOR_BUFFER_BIT);
-            true
-        }
+        gles.Color4f(r * opacity, g * opacity, b * opacity, a * opacity);
+        gles.Enable(gles11::BLEND);
+        gles.BlendFunc(gles11::ONE, gles11::ONE_MINUS_SRC_ALPHA);
+        gles.Disable(gles11::TEXTURE_2D);
+        gles.DrawArrays(gles11::TRIANGLES, 0, 6);
+        true
     };
 
     // re-borrow mutably
@@ -412,10 +428,6 @@ unsafe fn composite_layer_recursive(
             gles.BlendFunc(gles11::ONE, gles11::ONE_MINUS_SRC_ALPHA);
         }
 
-        let (x, y, w, h) = gl_rect_from_cg_rect(absolute_frame_clipped, scale_hack, fb_height);
-        gles.Scissor(x, y, w, h);
-        gles.Viewport(x, y, w, h);
-
         // Normal images will have top-to-bottom row order, but OpenGL ES
         // expects bottom-to-top, so flip the UVs in that case.
         let tex_coords: [f32; 12] = if host_obj.contents != nil {
@@ -432,21 +444,14 @@ unsafe fn composite_layer_recursive(
     // avoid holding mutable borrow while recursing
     let sublayers = std::mem::take(&mut host_obj.sublayers);
     for &child_layer in &sublayers {
+        // TODO: clipping/masksToBounds support
         composite_layer_recursive(
             gles,
             objc,
             mem,
             child_layer,
-            /* origin: */
-            CGPoint {
-                x: absolute_frame.origin.x - bounds.origin.x,
-                y: absolute_frame.origin.y - bounds.origin.y,
-            },
-            // TODO: clipping goes here (when masksToBounds is implemented)
-            clip_to,
+            /* origin: */ next_origin,
             opacity,
-            scale_hack,
-            fb_height,
         )
     }
     objc.borrow_mut::<CALayerHostObject>(layer).sublayers = sublayers;
@@ -474,41 +479,4 @@ unsafe fn upload_rgba8_pixels(gles: &mut dyn GLES, pixels: &[u8], dimensions: (u
         gles11::TEXTURE_MAG_FILTER,
         gles11::LINEAR as _,
     );
-}
-
-fn clip_rects(a_clip: CGRect, b_clip: CGRect) -> CGRect {
-    let a_x1 = a_clip.origin.x;
-    let a_y1 = a_clip.origin.y;
-    let a_x2 = a_x1 + a_clip.size.width;
-    let a_y2 = a_y1 + a_clip.size.height;
-
-    let b_x1 = b_clip.origin.x;
-    let b_y1 = b_clip.origin.y;
-    let b_x2 = b_x1 + b_clip.size.width;
-    let b_y2 = b_y1 + b_clip.size.height;
-
-    let x1 = b_x1.max(a_x1);
-    let y1 = b_y1.max(a_y1);
-    let x2 = b_x2.min(a_x2);
-    let y2 = b_y2.min(a_y2);
-    CGRect {
-        origin: CGPoint { x: x1, y: y1 },
-        size: CGSize {
-            width: (x2 - x1).max(0.0),
-            height: (y2 - y1).max(0.0),
-        },
-    }
-}
-
-fn gl_rect_from_cg_rect(
-    rect: CGRect,
-    scale_hack: u32,
-    fb_height: u32,
-) -> (GLint, GLint, GLint, GLint) {
-    let x = (rect.origin.x * scale_hack as f32).round() as GLint;
-    let y = (rect.origin.y * scale_hack as f32).round() as GLint;
-    let w = (rect.size.width * scale_hack as f32).round() as GLint;
-    let h = (rect.size.height * scale_hack as f32).round() as GLint;
-    // y points up in OpenGL ES, but down in UIKit and Core Animation
-    (x, fb_height as GLint - h - y, w, h)
 }

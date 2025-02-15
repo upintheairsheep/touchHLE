@@ -30,6 +30,7 @@ impl<const N: usize> Matrix<N> {
     }
 
     pub fn from<const M: usize>(other: &Matrix<M>) -> Self {
+        // FIXME: This is probably wrong for homogenous co-ordinates.
         let mut new = Self::identity();
         for i in 0..M {
             for j in 0..M {
@@ -135,6 +136,18 @@ impl Matrix<3> {
     }
 
     pub fn translate_2d(x: f32, y: f32) -> Matrix<3> {
+        // FIXME: This is probably wrong, the x and y components should be
+        //        in the final column, not the final row (cf. translate_3d).
         Matrix([[1.0, 0.0, x], [0.0, 1.0, y], [0.0, 0.0, 1.0]])
+    }
+}
+impl Matrix<4> {
+    pub fn translate_3d(x: f32, y: f32, z: f32) -> Matrix<4> {
+        Matrix([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [x, y, z, 1.0],
+        ])
     }
 }
