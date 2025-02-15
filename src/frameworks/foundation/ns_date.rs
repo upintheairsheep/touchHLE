@@ -17,8 +17,8 @@ use std::ops::{Add, Sub};
 use std::time::{Duration, SystemTime};
 
 #[derive(Default)]
-struct NSDateHostObject {
-    time_interval: NSTimeInterval,
+pub(super) struct NSDateHostObject {
+    pub(super) time_interval: NSTimeInterval,
 }
 impl HostObject for NSDateHostObject {}
 
@@ -86,11 +86,8 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 + (id)dateWithTimeIntervalSince1970:(NSTimeInterval)secs {
-    let time_interval = -(SECS_FROM_UNIX_TO_APPLE_EPOCHS as f64) + secs;
-    let host_object = Box::new(NSDateHostObject {
-        time_interval
-    });
-    let new = env.objc.alloc_object(this, host_object, &mut env.mem);
+    let new: id = msg![env; this alloc];
+    let new: id = msg![env; new initWithTimeIntervalSince1970:secs];
     autorelease(env, new)
 }
 
@@ -126,6 +123,12 @@ pub const CLASSES: ClassExports = objc_classes! {
 
 - (id)initWithTimeIntervalSinceReferenceDate:(NSTimeInterval)secs {
     env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = secs;
+    this
+}
+
+- (id)initWithTimeIntervalSince1970:(NSTimeInterval)secs {
+    let time_interval = -(SECS_FROM_UNIX_TO_APPLE_EPOCHS as f64) + secs;
+    env.objc.borrow_mut::<NSDateHostObject>(this).time_interval = time_interval;
     this
 }
 
