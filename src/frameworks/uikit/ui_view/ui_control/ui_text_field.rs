@@ -14,7 +14,7 @@ use crate::dyld::{ConstantExports, HostConstant};
 use crate::frameworks::core_graphics::{CGPoint, CGRect};
 use crate::frameworks::foundation::ns_string::to_rust_string;
 use crate::frameworks::foundation::{ns_string, NSInteger, NSRange, NSUInteger};
-use crate::frameworks::uikit::ui_font::UITextAlignmentLeft;
+use crate::frameworks::uikit::ui_font::{UITextAlignment, UITextAlignmentLeft};
 use crate::frameworks::uikit::ui_view::ui_window::{
     UIKeyboardDidHideNotification, UIKeyboardDidShowNotification, UIKeyboardWillHideNotification,
     UIKeyboardWillShowNotification,
@@ -139,6 +139,11 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (())setTextColor:(id)color { // UIColor*
     let text_label = env.objc.borrow_mut::<UITextFieldHostObject>(this).text_label;
     msg![env; text_label setTextColor:color]
+}
+
+- (())setTextAlignment:(UITextAlignment)text_alignment {
+    let text_label = env.objc.borrow_mut::<UITextFieldHostObject>(this).text_label;
+    () = msg![env; text_label setTextAlignment:text_alignment];
 }
 
 - (())setFont:(id)new_font { // UIFont*
