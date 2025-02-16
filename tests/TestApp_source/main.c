@@ -343,6 +343,10 @@ int test_vsnprintf() {
       str,
       "5|       5|00000005|5|       5|005|     005|     005|       5|00000005");
   free(str);
+  // Test %d with alternative form
+  str = str_format("%#.2d", 5);
+  res += !!strcmp(str, "05");
+  free(str);
   // Test %f
   str = str_format("%f|%8f|%08f|%.f|%8.f|%.3f|%8.3f|%08.3f|%*f|%0*f", 10.12345,
                    10.12345, 10.12345, 10.12345, 10.12345, 10.12345, 10.12345,
