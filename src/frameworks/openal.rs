@@ -281,6 +281,11 @@ fn alIsBuffer(_env: &mut Environment, buffer: ALuint) -> ALboolean {
     unsafe { al::alIsBuffer(buffer) }
 }
 
+fn alGetBufferi(env: &mut Environment, buffer: ALuint, param: ALenum, value: MutPtr<ALint>) {
+    let value = env.mem.ptr_at(value, 1);
+    unsafe { al::alGetBufferi(buffer, param, value) }
+}
+
 fn alIsSource(_env: &mut Environment, source: ALuint) -> ALboolean {
     unsafe { al::alIsSource(source) }
 }
@@ -671,9 +676,6 @@ fn alcIsExtensionPresent(
     0
 }
 fn alGetBufferf(_env: &mut Environment, _buffer: ALuint, _param: ALenum, _value: MutPtr<ALfloat>) {
-    todo!();
-}
-fn alGetBufferi(_env: &mut Environment, _buffer: ALuint, _param: ALenum, _value: MutPtr<ALint>) {
     todo!();
 }
 fn alDisable(_env: &mut Environment, _capability: ALenum) {

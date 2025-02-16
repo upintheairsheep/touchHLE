@@ -132,6 +132,8 @@ extern "C" {
 
     pub fn alEnable(capability: ALenum);
 
+    pub fn alGetBufferi(buffer: ALuint, param: ALenum, value: *const ALint);
+
     pub fn alListenerf(param: ALenum, value: ALfloat);
     pub fn alListener3f(param: ALenum, value1: ALfloat, value2: ALfloat, value3: ALfloat);
     pub fn alListenerfv(param: ALenum, values: *const ALfloat);
