@@ -290,13 +290,29 @@ pub fn strtoul(
     // TODO: handle errno properly
     set_errno(env, 0);
 
-    let s = env.mem.cstr_at_utf8(str).unwrap();
+    let start = skip_whitespace(env, str);
+    let whitespace_len = Ptr::to_bits(start) - Ptr::to_bits(str);
+
+    let s = env.mem.cstr_at_utf8(start).unwrap();
     log_dbg!("strtoul({:?} ({}), {:?}, {})", str, s, endptr, base);
-    assert_eq!(base, 16);
-    let without_prefix = s.trim_start_matches("0x");
-    let res = u32::from_str_radix(without_prefix, 16).unwrap_or(ULONG_MAX);
+    let (trimmed, len) = if base == 16 {
+        // We need to count prefix in the length
+        (
+            s.trim_start_matches("0x"),
+            s.len() + whitespace_len as usize,
+        )
+    } else {
+        assert_eq!(base, 10);
+        let trimmed = s.trim_end_matches(|c: char| !char::is_ascii_digit(&c));
+        (trimmed, trimmed.len() + whitespace_len as usize)
+    };
+    let res = if trimmed.is_empty() {
+        0
+    } else {
+        u32::from_str_radix(trimmed, base as u32).unwrap_or(ULONG_MAX)
+    };
     if !endptr.is_null() {
-        let len: GuestUSize = s.len().try_into().unwrap();
+        let len: GuestUSize = len.try_into().unwrap();
         env.mem.write(endptr, (str + len).cast_mut());
     }
     res

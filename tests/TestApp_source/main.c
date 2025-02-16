@@ -680,6 +680,30 @@ int test_strtoul() {
   if (strtoul(text, &endptr, 16) != 3435973836 || endptr != text + 10) {
     return -1;
   }
+  text = "12345";
+  if (strtoul(text, &endptr, 10) != 12345UL || endptr != text + 5) {
+    return -2;
+  }
+  text = "123abc";
+  if (strtoul(text, &endptr, 10) != 123UL || endptr != text + 3) {
+    return -3;
+  }
+  text = "abc";
+  if (strtoul(text, &endptr, 10) != 0UL || endptr != text) {
+    return -4;
+  }
+  text = "-1";
+  if (strtoul(text, &endptr, 10) != (unsigned long)-1 || endptr != text + 2) {
+    return -5;
+  }
+  text = "Ff";
+  if (strtoul(text, &endptr, 16) != 255UL || endptr != text + 2) {
+    return -6;
+  }
+  text = "   +42abc";
+  if (strtoul(text, &endptr, 10) != 42UL || endptr != text + 6) {
+    return -6;
+  }
   return 0;
 }
 
