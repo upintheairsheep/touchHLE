@@ -171,7 +171,6 @@ impl Window {
     pub fn rotatable_fullscreen() -> bool {
         env::consts::OS == "android"
     }
-
     pub fn new(
         title: &str,
         icon: Option<Image>,
@@ -352,7 +351,7 @@ impl Window {
             let x = (in_x - vx as f32) / vw as f32 - 0.5;
             let y = (in_y - vy as f32) / vh as f32 - 0.5;
             // rotate
-            let matrix = window.rotation_matrix();
+            let matrix = window.rotation_matrix().inverse().unwrap();
             let [x, y] = matrix.transform([x, y]);
             // back to pixels
             let (out_w, out_h) = window.size_unrotated_unscaled();
@@ -754,7 +753,7 @@ impl Window {
         };
 
         // Correct for window rotation
-        let [x, y] = self.rotation_matrix().transform([x, y]);
+        let [x, y] = self.rotation_matrix().inverse().unwrap().transform([x, y]);
         let (x, y) = (x.clamp(-1.0, 1.0), y.clamp(-1.0, 1.0)); // just in case
 
         // Let's simulate tilting the device based on the analog stick inputs.
@@ -775,15 +774,10 @@ impl Window {
         // (x, y) are swapped because the controller Y axis usually corresponds
         // to forward/backward movement, but rotating about the Y axis means
         // tilting the device left/right.
-        // There used to be a bug in the matrix multiplication code that made it
-        // behave as if the matrix was transposed. This code was written before
-        // that was discovered, so it is probably incoherent. It might be worth
-        // rewriting it eventually (without changing how it behaves).
         let x_rotation = neutral_x - x_rotation_range * y;
         let y_rotation = neutral_y - y_rotation_range * x;
-        let matrix = Matrix::<3>::y_rotation(y_rotation)
-            .multiply(&Matrix::<3>::x_rotation(x_rotation))
-            .transpose();
+        let matrix =
+            Matrix::<3>::y_rotation(y_rotation).multiply(&Matrix::<3>::x_rotation(x_rotation));
         let [x, y, z] = matrix.transform(gravity);
 
         (x, y, z)
@@ -1181,10 +1175,11 @@ impl Window {
         return 0;
     }
 
-    /// Transformation matrix for texture co-ordinates when sampling the
-    /// framebuffer presented by the app and for touch inputs received by the
-    /// window. Rotates from the window co-ordinate space to the app co-ordinate
-    /// space. See [Self::rotate_device].
+    /// Transformation matrix for transforming between the window's co-ordinate
+    /// space and the app's original co-ordinate space when rotation is in use
+    /// (see [Self::rotate_device]). This returns a matrix appropriate for
+    /// rotating texture co-ordinates to display the image in the window; when
+    /// rotating input co-ordinates, invert the matrix.
     pub fn rotation_matrix(&self) -> Matrix<2> {
         match self.device_orientation {
             DeviceOrientation::Portrait => Matrix::identity(),
