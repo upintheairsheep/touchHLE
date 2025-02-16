@@ -54,7 +54,7 @@ impl_GuestRet_for_large_struct!(CGAffineTransform);
 // These conversions allow sharing code with the touchHLE Matrix type.
 // Note that they transpose the matrix relative to what Apple documents (see
 // the doc comment on the struct above), because our Matrix type is built on
-// OpenGL-style (M × v) column-vector multiplication for transformations, versus
+// OpenGL-style (M × v) column-vector multiplication for transformations, vs.
 // CGAffineTransform's (v × M) row-vector multiplication.
 impl TryFrom<Matrix<3>> for CGAffineTransform {
     type Error = ();
