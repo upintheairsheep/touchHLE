@@ -27,7 +27,7 @@ pub unsafe fn matrix_fixed_to_float(m: *const GLfixed) -> [GLfloat; 16] {
 }
 
 /// Type of a parameter, used in [ParamTable].
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum ParamType {
     /// `GLboolean`
     Boolean,
