@@ -188,6 +188,8 @@ long int lrintf(float);
 double ldexp(double, int);
 float ldexpf(float, int);
 float frexpf(float, int *);
+double frexp(double, int *);
+double fabs(double);
 
 // `CFBase.h`
 
@@ -2169,6 +2171,56 @@ int test_frexpf(void) {
   return 0;
 }
 
+int test_frexp() {
+  double value, frac;
+  int exp;
+
+  // Test 1: 0.0 -> should return 0.0 and exponent 0.
+  value = 0.0;
+  frac = frexp(value, &exp);
+  if (frac != 0.0 || exp != 0) {
+    return -1;
+  }
+
+  // Test 2: 8.0 -> 8.0 = 0.5 * 2^4, so fraction 0.5 and exponent 4.
+  value = 8.0;
+  frac = frexp(value, &exp);
+  if (frac != 0.5 || exp != 4) {
+    return -2;
+  }
+
+  // Test 3: 0.75 -> already normalized, should return 0.75 and exponent 0.
+  value = 0.75;
+  frac = frexp(value, &exp);
+  if (frac != 0.75 || exp != 0) {
+    return -3;
+  }
+
+  // Test 4: -4.0 -> -4.0 = -0.5 * 2^3, so fraction -0.5 and exponent 3.
+  value = -4.0;
+  frac = frexp(value, &exp);
+  if (frac != -0.5 || exp != 3) {
+    return -4;
+  }
+
+  // Test 5: 1.0 -> 1.0 = 0.5 * 2^1, so fraction 0.5 and exponent 1.
+  value = 1.0;
+  frac = frexp(value, &exp);
+  if (frac != 0.5 || exp != 1) {
+    return -5;
+  }
+
+  // Test 6: pi -> 3.141592653589793 = (pi/4) * 2^2, expect fraction
+  // ~0.7853981633974483 and exponent 2.
+  value = 3.141592653589793;
+  frac = frexp(value, &exp);
+  if (exp != 2 || fabs(frac - (3.141592653589793 / 4.0)) > 1e-15) {
+    return -6;
+  }
+
+  return 0;
+}
+
 void jmpfunction(jmp_buf env_buf) { longjmp(env_buf, 432); }
 
 int test_setjmp() {
@@ -2231,6 +2283,7 @@ struct {
     FUNC_DEF(test_ldexp),
     FUNC_DEF(test_maskrune),
     FUNC_DEF(test_frexpf),
+    FUNC_DEF(test_frexp),
     FUNC_DEF(test_setjmp),
 };
 // clang-format on
