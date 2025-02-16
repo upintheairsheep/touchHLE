@@ -98,6 +98,11 @@ use al_types::*;
 
 pub const AL_NO_ERROR: ALenum = 0;
 
+pub const AL_VENDOR: ALenum = 0xb001;
+pub const AL_VERSION: ALenum = 0xb002;
+pub const AL_RENDERER: ALenum = 0xb003;
+pub const AL_EXTENSIONS: ALenum = 0xb004;
+
 pub const AL_MAX_GAIN: ALenum = 0x100E;
 
 pub const AL_SOURCE_STATE: ALenum = 0x1010;

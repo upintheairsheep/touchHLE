@@ -21,13 +21,15 @@ use crate::Environment;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use touchHLE_openal_soft_wrapper::{
-    ALC_DEVICE_SPECIFIER, ALC_FREQUENCY, ALC_MONO_SOURCES, ALC_STEREO_SOURCES,
+    ALC_DEVICE_SPECIFIER, ALC_FREQUENCY, ALC_MONO_SOURCES, ALC_STEREO_SOURCES, AL_EXTENSIONS,
+    AL_RENDERER, AL_VENDOR, AL_VERSION,
 };
 
 #[derive(Default)]
 pub struct State {
     devices: HashMap<MutPtr<GuestALCdevice>, *mut ALCdevice>,
     contexts: HashMap<MutPtr<GuestALCcontext>, *mut ALCcontext>,
+    strings_cache: HashMap<ALenum, ConstPtr<u8>>,
 }
 impl State {
     fn get(env: &mut Environment) -> &mut Self {
@@ -285,6 +287,34 @@ fn alIsSource(_env: &mut Environment, source: ALuint) -> ALboolean {
 
 fn alEnable(_env: &mut Environment, capability: ALenum) {
     unsafe { al::alEnable(capability) };
+}
+
+fn alGetString(env: &mut Environment, param: ALenum) -> ConstPtr<u8> {
+    let res = if let Some(&str) = env.framework_state.openal.strings_cache.get(&param) {
+        str
+    } else {
+        // Those values are extracted from the iPhone 3GS, iOS 4.0.1
+        // (same values were seen on the iPhone Simulator)
+        let s: &[u8] = match param {
+            AL_VENDOR => b"Apple Inc.",
+            AL_VERSION => b"1.1",
+            AL_RENDERER => b"Software",
+            AL_EXTENSIONS => b"AL_EXT_OFFSET AL_EXT_LINEAR_DISTANCE AL_EXT_EXPONENT_DISTANCE AL_EXT_STATIC_BUFFER",
+            _ => unreachable!()
+        };
+        let new_str = env.mem.alloc_and_write_cstr(s).cast_const();
+        env.framework_state
+            .openal
+            .strings_cache
+            .insert(param, new_str);
+        new_str
+    };
+    log_dbg!(
+        "alGetString({}) => '{:?}'",
+        param,
+        env.mem.cstr_at_utf8(res)
+    );
+    res
 }
 
 fn alListenerf(_env: &mut Environment, param: ALenum, value: ALfloat) {
@@ -675,9 +705,6 @@ fn alGetIntegerv(_env: &mut Environment, _param: ALenum, _values: MutPtr<ALint>)
 }
 fn alGetProcAddress(env: &mut Environment, funcName: ConstPtr<u8>) -> MutVoidPtr {
     alcGetProcAddress(env, Ptr::null(), funcName)
-}
-fn alGetString(_env: &mut Environment, _param: ALenum) -> ConstPtr<u8> {
-    todo!();
 }
 fn alIsExtensionPresent(_env: &mut Environment, _extName: ConstPtr<u8>) -> ALboolean {
     todo!();
