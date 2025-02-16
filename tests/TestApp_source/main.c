@@ -443,6 +443,10 @@ int test_vsnprintf() {
                    "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ");
   res += !!strcmp(str, "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWX");
   free(str);
+  // Test precision for %x
+  str = str_format("%.8x-%.8x-%.2x", 10, 9999999, 9999999);
+  res += !!strcmp(str, "0000000a-0098967f-98967f");
+  free(str);
 
   return res;
 }

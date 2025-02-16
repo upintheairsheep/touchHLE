@@ -248,11 +248,11 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
                 }
             }
             b'x' => {
-                assert!(precision.is_none());
                 // Note: on 32-bit system unsigned int and unsigned long
                 // are u32, so length_modifier is ignored
                 let uint: u32 = args.next(env);
                 if pad_width > 0 {
+                    assert!(precision.is_none()); // TODO
                     let pad_width = pad_width as usize;
                     if pad_char == '0' && precision.is_none() {
                         write!(&mut res, "{:0>1$x}", uint, pad_width).unwrap();
@@ -260,7 +260,15 @@ pub fn printf_inner<const NS_LOG: bool, F: Fn(&Mem, GuestUSize) -> u8>(
                         write!(&mut res, "{:>1$x}", uint, pad_width).unwrap();
                     }
                 } else {
-                    res.extend_from_slice(format!("{:x}", uint).as_bytes());
+                    let tmp = if precision.is_some_and(|value| value > 0) {
+                        format!("{:01$x}", uint, precision.unwrap())
+                    } else {
+                        if let Some(precision) = precision {
+                            assert!(precision == 0 && uint != 0); // TODO
+                        }
+                        format!("{:x}", uint)
+                    };
+                    res.extend_from_slice(tmp.as_bytes());
                 }
             }
             b'X' => {
