@@ -16,8 +16,8 @@ use crate::Environment;
 #[repr(C, packed)]
 /// Apple documents this as representing a 3-by-3 matrix type where the columns
 /// are `[a, c, tx]`, `[b, d, ty]`,`[0, 0, 1]`, and which can then be used to
-/// transform points with (p × M) where p is a row vector representing the point
-/// and M is the matrix.
+/// transform points with (p × M) where p is a row vector representing the
+/// point and M is the matrix.
 pub struct CGAffineTransform {
     pub a: CGFloat,
     pub b: CGFloat,
