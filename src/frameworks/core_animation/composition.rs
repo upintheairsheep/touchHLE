@@ -220,8 +220,8 @@ pub fn recomposite_if_necessary(env: &mut Environment) -> Option<Instant> {
         load_matrix(
             gles,
             Matrix::from(&Matrix::scale_2d(
-                2.0 / fb_width as f32,
-                -2.0 / fb_height as f32,
+                2.0 / screen_bounds.size.width,
+                -2.0 / screen_bounds.size.height,
             ))
             .multiply(&Matrix::translate_3d(-1.0, 1.0, 0.0)),
         );
