@@ -513,6 +513,24 @@ int test_sscanf() {
   matched = sscanf("3.14159265359", "%lf", &lf);
   if (!(matched == 1 && lf == 3.14159265359))
     return -19;
+  matched = sscanf("hello123", "%[a-z]", str);
+  if (!(matched == 1 && strcmp(str, "hello") == 0))
+    return -20;
+  matched = sscanf("abc123", "%[^0-9]", str);
+  if (!(matched == 1 && strcmp(str, "abc") == 0))
+    return -21;
+  matched = sscanf("-123", "%[-0-9]", str);
+  if (!(matched == 1 && strcmp(str, "-123") == 0))
+    return -22;
+  matched = sscanf("a-b", "%[a-z-]", str);
+  if (!(matched == 1 && strcmp(str, "a-b") == 0))
+    return -23;
+  matched = sscanf("123", "%[^0-9]", str);
+  if (matched != 0)
+    return -24;
+  matched = sscanf("Var_123 =", "%[A-Za-z0-9_]", str);
+  if (!(matched == 1 && strcmp(str, "Var_123") == 0))
+    return -25;
   return 0;
 }
 

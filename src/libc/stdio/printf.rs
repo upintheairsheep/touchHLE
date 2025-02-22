@@ -808,28 +808,41 @@ fn sscanf_common(
             b'[' => {
                 assert_eq!(max_width, 0);
                 assert!(length_modifier.is_none());
-                // TODO: support ranges like [0-9]
                 // [set] case
-                let mut c = env.mem.read(format + format_char_idx);
-                format_char_idx += 1;
-                // TODO: only `not in the set` for a moment
-                assert_eq!(c, b'^');
+                assert_ne!(env.mem.read(format + format_char_idx), b']');
+                let mut c: u8;
+                let inverted = if env.mem.read(format + format_char_idx) == b'^' {
+                    format_char_idx += 1;
+                    assert_ne!(env.mem.read(format + format_char_idx), b']');
+                    true
+                } else {
+                    false
+                };
                 // Build set
                 let mut set: HashSet<u8> = HashSet::new();
-                // TODO: set can contain ']' as well
                 c = env.mem.read(format + format_char_idx);
                 format_char_idx += 1;
                 while c != b']' {
-                    set.insert(c);
+                    if env.mem.read(format + format_char_idx) == b'-' {
+                        assert_ne!(env.mem.read(format + format_char_idx + 1), b']');
+                        let cc = env.mem.read(format + format_char_idx + 1);
+                        for x in c..=cc {
+                            set.insert(x);
+                        }
+                        format_char_idx += 2;
+                    } else {
+                        set.insert(c);
+                    }
                     c = env.mem.read(format + format_char_idx);
                     format_char_idx += 1;
                 }
                 let mut dst_ptr: MutPtr<u8> = args.next(env);
+                let mut matched = false;
                 // Consume `src` while chars are not in the set
                 let mut cc = env.mem.read(src_ptr);
                 src_ptr += 1;
-                // TODO: handle end of src string
-                while !set.contains(&cc) {
+                while set.contains(&cc) ^ inverted && env.mem.read(src_ptr - 1) != b'\0' {
+                    matched = true;
                     env.mem.write(dst_ptr, cc);
                     dst_ptr += 1;
                     cc = env.mem.read(src_ptr);
@@ -837,7 +850,11 @@ fn sscanf_common(
                 }
                 // we need to backtrack one position
                 src_ptr -= 1;
-                env.mem.write(dst_ptr, b'\0');
+                if matched {
+                    env.mem.write(dst_ptr, b'\0');
+                } else {
+                    matched_args -= 1;
+                }
             }
             b's' => {
                 assert_eq!(max_width, 0);
