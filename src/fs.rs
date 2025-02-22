@@ -520,6 +520,23 @@ impl Fs {
             }
         });
 
+        if !read_only_mode {
+            // Special case: Some apps may create save files at
+            // Library/Preferences at the start, thus presence of that
+            // directory is expected
+            let path = paths::user_data_base_path()
+                .join(paths::SANDBOX_DIR)
+                .join(bundle_id)
+                .join("Library")
+                .join("Preferences");
+            if let Err(e) = std::fs::create_dir_all(&path) {
+                panic!(
+                    "Could not create documents sub-directory for app at {:?}: {:?}",
+                    path, e
+                );
+            }
+        }
+
         // Some Free Software libraries are bundled with touchHLE.
         use paths::DYLIBS_DIR;
         let usr_lib = FsNode::dir()
