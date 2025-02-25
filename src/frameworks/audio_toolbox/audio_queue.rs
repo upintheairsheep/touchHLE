@@ -17,8 +17,8 @@ use crate::frameworks::audio_toolbox::ContextManager;
 use crate::frameworks::carbon_core::OSStatus;
 use crate::frameworks::core_audio_types::{
     debug_fourcc, fourcc, kAudioFormatAppleIMA4, kAudioFormatFlagIsBigEndian,
-    kAudioFormatFlagIsFloat, kAudioFormatFlagIsPacked, kAudioFormatLinearPCM,
-    AudioStreamBasicDescription,
+    kAudioFormatFlagIsFloat, kAudioFormatFlagIsPacked, kAudioFormatFlagIsSignedInteger,
+    kAudioFormatLinearPCM, AudioStreamBasicDescription,
 };
 use crate::frameworks::core_foundation::cf_run_loop::{
     kCFRunLoopCommonModes, CFRunLoopGetMain, CFRunLoopMode, CFRunLoopRef,
@@ -465,7 +465,7 @@ pub fn is_supported_audio_format(format: &AudioStreamBasicDescription) -> bool {
         kAudioFormatLinearPCM => {
             // TODO: support more PCM formats
             (channels_per_frame == 1 || channels_per_frame == 2)
-                && (bits_per_channel == 8 || bits_per_channel == 16)
+                && (bits_per_channel == 8 || bits_per_channel == 16 || bits_per_channel == 32)
                 && ((format_flags & kAudioFormatFlagIsPacked) != 0
                     || ((bits_per_channel / 8) * channels_per_frame) == bytes_per_frame)
                 && (format_flags & kAudioFormatFlagIsBigEndian) == 0
@@ -582,6 +582,22 @@ pub fn decode_buffer(
                 (1, 16) => al::AL_FORMAT_MONO16,
                 (2, 8) => al::AL_FORMAT_STEREO8,
                 (2, 16) => al::AL_FORMAT_STEREO16,
+                (2, 32) => {
+                    assert!((format.format_flags & kAudioFormatFlagIsSignedInteger) != 0);
+                    assert!(processed_data.len() % 4 == 0);
+                    let new_size = (processed_data.len() / 4) * 2; // size from 32-bit to 16-bit
+                    let mut new_processed_data = Vec::<u8>::with_capacity(new_size);
+                    for chunk in processed_data.chunks(4) {
+                        let val: i32 = i32::from_le_bytes(chunk.try_into().unwrap());
+                        let new_val: i16 = (val >> 16) as i16;
+                        new_processed_data.extend(new_val.to_le_bytes());
+                    }
+                    return (
+                        al::AL_FORMAT_STEREO16,
+                        format.sample_rate as ALsizei,
+                        new_processed_data,
+                    );
+                }
                 _ => unreachable!(),
             };
             (f, format.sample_rate as ALsizei, processed_data)
